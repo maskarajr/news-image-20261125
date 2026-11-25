@@ -53,14 +53,14 @@ export interface WireStory { number: number; place: string; summary: string; sou
 export const WIRES: readonly WireStory[] = [
   { number: 3, place: 'Tokyo', summary: 'Services PPI +4.2%, a 36-year high', source: 'Reuters · CNA · BOJ' },
   { number: 4, place: 'Dhaka', summary: 'Garment wage rises 36% after protests', source: 'AP · Al Jazeera · The Straits Times' },
-  { number: 5, place: 'Pyongyang', summary: 'Sylvain Astier expelled; 48 hours to leave', source: 'AP · Euronews · The Korea Times' },
+  { number: 5, place: 'Pyongyang', summary: 'Sylvain Astier: 48 hours to leave', source: 'AP · Euronews · The Korea Times' },
   { number: 6, place: 'Jakarta', summary: 'OECD accession review ~80% complete', source: 'ANTARA · CNBC Indonesia' },
   { number: 8, place: 'Canberra', summary: 'October CPI jumps to 4.9%', source: 'ABC · ABS' },
-  { number: 9, place: 'Balleny Islands', summary: 'M5.9 quake; green alert, no exposure', source: 'USGS' },
+  { number: 9, place: 'Balleny', summary: 'M5.9 quake; green alert, no exposure', source: 'USGS' },
   { number: 11, place: 'Ras Tanura', summary: 'Seven drones intercepted; no injuries', source: 'Al Arabiya · Anadolu' },
-  { number: 14, place: 'Odesa & Kyiv', summary: 'Overnight strikes kill three, injure two', source: 'The Independent · Ukrinform · Reuters' },
+  { number: 14, place: 'Odesa & Kyiv', summary: 'Strikes kill three, injure two', source: 'The Independent · Ukrinform · Reuters' },
   { number: 15, place: 'Darmstadt', summary: 'Hera reaches asteroid Dimorphos', source: 'BBC News' },
-  { number: 18, place: 'Middletown, Iowa', summary: 'Army detonates ~5 tons of lead azide', source: 'AP · US Army' },
+  { number: 18, place: 'Middletown', summary: '~5-ton lead azide blast', source: 'AP · US Army' },
   { number: 19, place: 'New York, UN', summary: '16 Days of Activism begins', source: 'UN Press · UN Women' },
 ];
 

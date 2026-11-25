@@ -48,7 +48,7 @@ function leads():void{
 
 function wires():void{
   const x=306,y=686,width=694,colWidth=337;drawText(canvas,MERIDIAN_BOLD,PAGE.wires,x,y,19,INK);
-  WIRES.forEach((story,index)=>{const col=index<6?0:1,row=col===0?index:index-6,left=x+col*(colWidth+20),top=y+27+row*34;
+  WIRES.forEach((story,index)=>{const col=index<6?0:1,row=col===0?index:index-6,left=x+col*(colWidth+20),top=y+27+row*36;
     canvas.circle(left+8,top+8,8,[47,79,105]);drawCentered(canvas,HALDEN_BOLD,String(story.number),left+8,top+3,10,COLORS.white);
     const line=`${story.place} · ${story.summary}`,available=colWidth-24,size=fitSize(HALDEN_BOLD,line,13,available,13);
     drawText(canvas,HALDEN_BOLD,line,left+22,top,size,INK);

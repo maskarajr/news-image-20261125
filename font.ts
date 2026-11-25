@@ -54,7 +54,7 @@ export function textWidth(text: string, height: number, tracking = 0.10, widthSc
 
 export function drawText(canvas: Canvas, text: string, x: number, y: number, height: number, color: Color, tracking = 0.10, widthScale = 1): number {
   let cursor = x;
-  const strokeWidth = Math.max(1.1, height * 0.105);
+  const strokeWidth = Math.max(1.2, height * 0.13);
   for (const char of text) {
     const glyph = glyphFor(char);
     for (const path of glyph.strokes) {

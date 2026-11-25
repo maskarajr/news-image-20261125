@@ -1,0 +1,12 @@
+{
+  "name": "news-image-20261125",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bake-map": "node scripts/bake-map.mjs"
+  },
+  "devDependencies": {
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  }
+}

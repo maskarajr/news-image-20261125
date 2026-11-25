@@ -255,3 +255,26 @@ export function wrapText(font: TrueTypeFont, text: string, size: number, maxWidt
   if (line) lines.push(line);
   return lines;
 }
+
+export function balancedWrapText(font: TrueTypeFont, text: string, size: number, maxWidth: number, maxLines = 2): string[] {
+  if (textWidth(font, text, size) <= maxWidth) return [text];
+  if (maxLines !== 2) return wrapText(font, text, size, maxWidth);
+  const words = text.split(' ');
+  let best: string[] | null = null, bestScore = Infinity;
+  for (let split = 1; split < words.length; split++) {
+    const first = words.slice(0, split).join(' '), second = words.slice(split).join(' ');
+    const firstWidth = textWidth(font, first, size), secondWidth = textWidth(font, second, size);
+    if (firstWidth > maxWidth || secondWidth > maxWidth) continue;
+    const score = Math.abs(firstWidth - secondWidth) + Math.max(firstWidth, secondWidth) * 0.08;
+    if (score < bestScore) { bestScore = score; best = [first, second]; }
+  }
+  return best ?? wrapText(font, text, size, maxWidth);
+}
+
+export function fitWrappedSize(font: TrueTypeFont, text: string, maxSize: number, maxWidth: number, floor: number, maxLines = 2): number {
+  for (let size = maxSize; size >= floor; size -= 0.25) {
+    const lines = balancedWrapText(font, text, size, maxWidth, maxLines);
+    if (lines.length <= maxLines && lines.every((line) => textWidth(font, line, size) <= maxWidth)) return size;
+  }
+  return floor;
+}

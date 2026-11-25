@@ -129,6 +129,33 @@ export class Canvas {
     }
   }
 
+  multiPolygon(contours: readonly (readonly (readonly [number, number])[])[], color: Color): void {
+    const scaled = contours
+      .filter((contour) => contour.length >= 3)
+      .map((contour) => contour.map(([x, y]) => [x * this.scale, y * this.scale] as const));
+    if (!scaled.length) return;
+    const allPoints = scaled.flat();
+    const minY = Math.max(0, Math.floor(Math.min(...allPoints.map((point) => point[1]))));
+    const maxY = Math.min(this.physicalHeight - 1, Math.ceil(Math.max(...allPoints.map((point) => point[1]))));
+    for (let y = minY; y <= maxY; y++) {
+      const scanY = y + 0.5;
+      const intersections: number[] = [];
+      for (const contour of scaled) {
+        for (let i = 0, j = contour.length - 1; i < contour.length; j = i++) {
+          const [xi, yi] = contour[i];
+          const [xj, yj] = contour[j];
+          if ((yi > scanY) !== (yj > scanY)) intersections.push(xi + ((scanY - yi) * (xj - xi)) / (yj - yi));
+        }
+      }
+      intersections.sort((a, b) => a - b);
+      for (let i = 0; i + 1 < intersections.length; i += 2) {
+        const from = Math.max(0, Math.ceil(intersections[i]));
+        const to = Math.min(this.physicalWidth - 1, Math.floor(intersections[i + 1]));
+        for (let x = from; x <= to; x++) this.setPhysical(x, y, color);
+      }
+    }
+  }
+
   line(x1: number, y1: number, x2: number, y2: number, width: number, color: Color): void {
     const dx = x2 - x1;
     const dy = y2 - y1;

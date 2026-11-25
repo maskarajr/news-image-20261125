@@ -12,4 +12,8 @@ An original, deterministic editorial world-news front page for Wednesday, 25 Nov
 mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
-Requires Node.js 22. No package installation, network access, or external assets are used.
+Requires Node.js 22. No package installation or network access is needed at runtime; all assets are vendored.
+
+The rendering code is MIT licensed. Font files in `fonts/` are from
+[`Nutlope/fontzz`](https://github.com/Nutlope/fontzz) and licensed under the
+SIL Open Font License 1.1; see `fonts/LICENSE-OFL.txt`.

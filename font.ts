@@ -1,77 +1,257 @@
+import { readFileSync } from 'node:fs';
 import type { Canvas, Color } from './canvas.ts';
 
-type Glyph = { width: number; strokes: readonly (readonly number[])[] };
-const g = (width: number, ...strokes: readonly number[][]): Glyph => ({ width, strokes });
+type Point = { x: number; y: number; on: boolean };
+type Contour = Point[];
+type FlatContour = readonly (readonly [number, number])[];
 
-// Original monoline geometric alphabet. Coordinates are normalized outlines
-// rendered as anti-aliased vector strokes by the 2x canvas, never bitmap cells.
-const GLYPHS: Record<string, Glyph> = {
-  A:g(.72,[.02,1,.36,0,.70,1],[.16,.62,.56,.62]), B:g(.68,[.04,1,.04,0,.44,0,.62,.14,.62,.38,.45,.50,.04,.50],[.45,.50,.65,.62,.65,.84,.48,1,.04,1]),
-  C:g(.68,[.64,.10,.50,0,.18,0,.03,.18,.03,.82,.18,1,.50,1,.64,.90]), D:g(.70,[.04,1,.04,0,.42,0,.66,.22,.66,.78,.42,1,.04,1]),
-  E:g(.62,[.60,0,.04,0,.04,1,.60,1],[.04,.50,.50,.50]), F:g(.62,[.04,1,.04,0,.60,0],[.04,.50,.50,.50]),
-  G:g(.70,[.66,.14,.52,0,.18,0,.03,.18,.03,.82,.18,1,.52,1,.67,.84,.67,.57,.42,.57]), H:g(.70,[.04,0,.04,1],[.66,0,.66,1],[.04,.50,.66,.50]),
-  I:g(.38,[.04,0,.34,0],[.19,0,.19,1],[.04,1,.34,1]), J:g(.58,[.54,0,.54,.78,.40,1,.15,1,.03,.84]),
-  K:g(.68,[.04,0,.04,1],[.64,0,.04,.56,.66,1]), L:g(.58,[.04,0,.04,1,.56,1]),
-  M:g(.88,[.04,1,.04,0,.44,.62,.84,0,.84,1]), N:g(.74,[.04,1,.04,0,.70,1,.70,0]),
-  O:g(.72,[.18,0,.54,0,.68,.18,.68,.82,.54,1,.18,1,.04,.82,.04,.18,.18,0]), P:g(.66,[.04,1,.04,0,.45,0,.62,.16,.62,.39,.45,.54,.04,.54]),
-  Q:g(.74,[.18,0,.54,0,.68,.18,.68,.78,.54,1,.18,1,.04,.82,.04,.18,.18,0],[.43,.70,.72,1]), R:g(.68,[.04,1,.04,0,.45,0,.62,.16,.62,.39,.45,.54,.04,.54],[.39,.54,.67,1]),
-  S:g(.66,[.62,.12,.48,0,.18,0,.04,.15,.04,.39,.18,.50,.48,.50,.62,.62,.62,.85,.48,1,.16,1,.03,.88]), T:g(.66,[.02,0,.64,0],[.33,0,.33,1]),
-  U:g(.70,[.04,0,.04,.78,.18,1,.52,1,.66,.78,.66,0]), V:g(.72,[.02,0,.36,1,.70,0]),
-  W:g(.98,[.02,0,.22,1,.49,.42,.76,1,.96,0]), X:g(.70,[.03,0,.67,1],[.67,0,.03,1]),
-  Y:g(.70,[.02,0,.35,.50,.68,0],[.35,.50,.35,1]), Z:g(.66,[.03,0,.63,0,.03,1,.63,1]),
-  '0':g(.70,[.18,0,.52,0,.66,.18,.66,.82,.52,1,.18,1,.04,.82,.04,.18,.18,0],[.12,.88,.58,.12]),
-  '1':g(.44,[.05,.20,.23,0,.23,1],[.05,1,.42,1]), '2':g(.66,[.04,.18,.18,0,.48,0,.62,.17,.62,.36,.04,1,.64,1]),
-  '3':g(.64,[.04,.10,.18,0,.47,0,.61,.16,.61,.38,.48,.50,.24,.50],[.48,.50,.62,.62,.62,.84,.48,1,.17,1,.03,.90]),
-  '4':g(.68,[.49,1,.49,0,.03,.68,.65,.68]), '5':g(.64,[.61,0,.08,0,.04,.48,.46,.48,.61,.63,.61,.84,.47,1,.17,1,.03,.90]),
-  '6':g(.66,[.58,.10,.46,0,.18,0,.04,.20,.04,.82,.18,1,.48,1,.62,.84,.62,.61,.48,.48,.04,.48]),
-  '7':g(.64,[.02,0,.62,0,.17,1]), '8':g(.66,[.18,0,.48,0,.62,.15,.62,.36,.48,.50,.18,.50,.04,.36,.04,.15,.18,0],[.18,.50,.04,.64,.04,.85,.18,1,.48,1,.62,.85,.62,.64,.48,.50]),
-  '9':g(.66,[.62,.52,.18,.52,.04,.38,.04,.16,.18,0,.48,0,.62,.18,.62,.82,.48,1,.18,1,.07,.90]),
-  '.':g(.22,[.11,.94,.11,1]), ',':g(.24,[.14,.90,.08,1]), ':':g(.24,[.12,.28,.12,.34],[.12,.83,.12,.89]),
-  ';':g(.24,[.12,.28,.12,.34],[.14,.82,.08,.96]), '!':g(.24,[.12,0,.12,.72],[.12,.94,.12,1]),
-  '?':g(.58,[.03,.17,.16,0,.42,0,.55,.16,.55,.36,.29,.55,.29,.70],[.29,.94,.29,1]),
-  '-':g(.42,[.03,.52,.39,.52]), '/':g(.54,[.02,1,.52,0]), '\\':g(.54,[.02,0,.52,1]),
-  '+':g(.54,[.03,.52,.51,.52],[.27,.28,.27,.76]), '=':g(.54,[.03,.39,.51,.39],[.03,.65,.51,.65]),
-  '%':g(.74,[.04,1,.70,0],[.13,.05,.23,.05,.27,.13,.27,.25,.23,.33,.13,.33,.09,.25,.09,.13,.13,.05],[.51,.67,.61,.67,.65,.75,.65,.87,.61,.95,.51,.95,.47,.87,.47,.75,.51,.67]),
-  '~':g(.58,[.03,.57,.16,.47,.30,.47,.43,.57,.56,.47]), "'":g(.20,[.12,0,.09,.20]),
-  '(' :g(.34,[.29,0,.12,.18,.06,.50,.12,.82,.29,1]), ')' :g(.34,[.05,0,.22,.18,.28,.50,.22,.82,.05,1]),
-  '&':g(.72,[.62,.88,.49,1,.19,1,.04,.84,.04,.66,.52,.15,.48,0,.27,0,.16,.12,.16,.30,.68,1]),
-  ' ':g(.34),
-};
+export class TrueTypeFont {
+  private readonly data: Buffer;
+  private readonly tables = new Map<string, number>();
+  private readonly loca: number[];
+  private readonly advances: number[];
+  private readonly outlineCache = new Map<number, Contour[]>();
+  private readonly flatCache = new Map<number, FlatContour[]>();
+  private readonly scaledCache = new Map<string, FlatContour[]>();
+  private cmapOffset = 0;
+  readonly unitsPerEm: number;
+  readonly ascender: number;
+  readonly descender: number;
+  readonly numGlyphs: number;
 
-export const SUPPORTED_CHARS = new Set(Object.keys(GLYPHS));
-
-function glyphFor(char: string): Glyph {
-  const glyph = GLYPHS[char.toUpperCase()];
-  if (!glyph) throw new Error(`Unsupported glyph: ${JSON.stringify(char)}`);
-  return glyph;
-}
-
-export function textWidth(text: string, height: number, tracking = 0.10, widthScale = 1): number {
-  let width = 0;
-  for (const char of text) width += glyphFor(char).width * height * widthScale + tracking * height;
-  return Math.max(0, width - tracking * height);
-}
-
-export function drawText(canvas: Canvas, text: string, x: number, y: number, height: number, color: Color, tracking = 0.10, widthScale = 1): number {
-  let cursor = x;
-  const strokeWidth = Math.max(1.2, height * 0.13);
-  for (const char of text) {
-    const glyph = glyphFor(char);
-    for (const path of glyph.strokes) {
-      for (let i = 0; i + 3 < path.length; i += 2) {
-        canvas.line(cursor + path[i] * height * widthScale, y + path[i + 1] * height, cursor + path[i + 2] * height * widthScale, y + path[i + 3] * height, strokeWidth, color);
-      }
+  constructor(path: URL) {
+    this.data = readFileSync(path);
+    const numTables = this.u16(4);
+    for (let i = 0; i < numTables; i++) {
+      const offset = 12 + i * 16;
+      this.tables.set(this.data.toString('ascii', offset, offset + 4), this.u32(offset + 8));
     }
-    cursor += (glyph.width * widthScale + tracking) * height;
+    const head = this.table('head');
+    const hhea = this.table('hhea');
+    const maxp = this.table('maxp');
+    this.unitsPerEm = this.u16(head + 18);
+    this.ascender = this.i16(hhea + 4);
+    this.descender = this.i16(hhea + 6);
+    this.numGlyphs = this.u16(maxp + 4);
+    const metricCount = this.u16(hhea + 34);
+    const hmtx = this.table('hmtx');
+    this.advances = new Array(this.numGlyphs);
+    let lastAdvance = 0;
+    for (let i = 0; i < this.numGlyphs; i++) {
+      if (i < metricCount) lastAdvance = this.u16(hmtx + i * 4);
+      this.advances[i] = lastAdvance;
+    }
+    const indexFormat = this.i16(head + 50);
+    const loca = this.table('loca');
+    this.loca = new Array(this.numGlyphs + 1);
+    for (let i = 0; i <= this.numGlyphs; i++) this.loca[i] = indexFormat === 0 ? this.u16(loca + i * 2) * 2 : this.u32(loca + i * 4);
+    this.selectCmap();
+  }
+
+  private u8(offset: number): number { return this.data[offset]; }
+  private i8(offset: number): number { return this.data.readInt8(offset); }
+  private u16(offset: number): number { return this.data.readUInt16BE(offset); }
+  private i16(offset: number): number { return this.data.readInt16BE(offset); }
+  private u32(offset: number): number { return this.data.readUInt32BE(offset); }
+  private f2dot14(offset: number): number { return this.i16(offset) / 16384; }
+  private table(name: string): number {
+    const offset = this.tables.get(name);
+    if (offset === undefined) throw new Error(`TrueType table missing: ${name}`);
+    return offset;
+  }
+
+  private selectCmap(): void {
+    const cmap = this.table('cmap');
+    const count = this.u16(cmap + 2);
+    let selected = 0, score = -1;
+    for (let i = 0; i < count; i++) {
+      const record = cmap + 4 + i * 8;
+      const platform = this.u16(record);
+      const encoding = this.u16(record + 2);
+      const subtable = cmap + this.u32(record + 4);
+      if (this.u16(subtable) !== 4) continue;
+      const candidate = platform === 3 && encoding === 10 ? 3 : platform === 3 ? 2 : platform === 0 ? 1 : 0;
+      if (candidate > score) { score = candidate; selected = subtable; }
+    }
+    if (!selected) throw new Error('TrueType cmap format 4 not found');
+    this.cmapOffset = selected;
+  }
+
+  glyphIndex(char: string): number {
+    const code = char.codePointAt(0) ?? 0;
+    if (code > 0xffff) return 0;
+    const base = this.cmapOffset;
+    const segCount = this.u16(base + 6) / 2;
+    const endBase = base + 14;
+    const startBase = endBase + segCount * 2 + 2;
+    const deltaBase = startBase + segCount * 2;
+    const rangeBase = deltaBase + segCount * 2;
+    for (let i = 0; i < segCount; i++) {
+      const end = this.u16(endBase + i * 2);
+      if (code > end) continue;
+      const start = this.u16(startBase + i * 2);
+      if (code < start) return 0;
+      const delta = this.i16(deltaBase + i * 2);
+      const range = this.u16(rangeBase + i * 2);
+      if (range === 0) return (code + delta) & 0xffff;
+      const address = rangeBase + i * 2 + range + (code - start) * 2;
+      let glyph = this.u16(address);
+      if (glyph) glyph = (glyph + delta) & 0xffff;
+      return glyph;
+    }
+    return 0;
+  }
+
+  hasGlyph(char: string): boolean { return char === '\n' || this.glyphIndex(char) !== 0; }
+  advance(char: string, size: number): number { return this.advances[this.glyphIndex(char)] * size / this.unitsPerEm; }
+
+  private glyphContours(glyph: number, depth = 0): Contour[] {
+    const cached = this.outlineCache.get(glyph);
+    if (cached) return cached;
+    if (depth > 12 || glyph <= 0 || glyph >= this.numGlyphs || this.loca[glyph] === this.loca[glyph + 1]) return [];
+    const start = this.table('glyf') + this.loca[glyph];
+    const contourCount = this.i16(start);
+    const contours = contourCount >= 0 ? this.simpleGlyph(start, contourCount) : this.compositeGlyph(start, depth);
+    this.outlineCache.set(glyph, contours);
+    return contours;
+  }
+
+  private simpleGlyph(start: number, contourCount: number): Contour[] {
+    if (!contourCount) return [];
+    let cursor = start + 10;
+    const ends: number[] = [];
+    for (let i = 0; i < contourCount; i++) { ends.push(this.u16(cursor)); cursor += 2; }
+    const pointCount = ends[ends.length - 1] + 1;
+    const instructionLength = this.u16(cursor); cursor += 2 + instructionLength;
+    const flags: number[] = [];
+    while (flags.length < pointCount) {
+      const flag = this.u8(cursor++); flags.push(flag);
+      if (flag & 8) { const repeats = this.u8(cursor++); for (let i = 0; i < repeats; i++) flags.push(flag); }
+    }
+    const xs: number[] = []; let x = 0;
+    for (const flag of flags) {
+      if (flag & 2) x += (flag & 16 ? 1 : -1) * this.u8(cursor++);
+      else if (!(flag & 16)) { x += this.i16(cursor); cursor += 2; }
+      xs.push(x);
+    }
+    const ys: number[] = []; let y = 0;
+    for (const flag of flags) {
+      if (flag & 4) y += (flag & 32 ? 1 : -1) * this.u8(cursor++);
+      else if (!(flag & 32)) { y += this.i16(cursor); cursor += 2; }
+      ys.push(y);
+    }
+    const contours: Contour[] = []; let from = 0;
+    for (const end of ends) {
+      const contour: Contour = [];
+      for (let i = from; i <= end; i++) contour.push({ x: xs[i], y: ys[i], on: Boolean(flags[i] & 1) });
+      contours.push(contour); from = end + 1;
+    }
+    return contours;
+  }
+
+  private compositeGlyph(start: number, depth: number): Contour[] {
+    let cursor = start + 10, flags = 0;
+    const result: Contour[] = [];
+    do {
+      flags = this.u16(cursor); const child = this.u16(cursor + 2); cursor += 4;
+      let arg1: number, arg2: number;
+      if (flags & 1) { arg1 = this.i16(cursor); arg2 = this.i16(cursor + 2); cursor += 4; }
+      else { arg1 = this.i8(cursor); arg2 = this.i8(cursor + 1); cursor += 2; }
+      const dx = flags & 2 ? arg1 : 0, dy = flags & 2 ? arg2 : 0;
+      let a = 1, b = 0, cc = 0, d = 1;
+      if (flags & 8) { a = d = this.f2dot14(cursor); cursor += 2; }
+      else if (flags & 64) { a = this.f2dot14(cursor); d = this.f2dot14(cursor + 2); cursor += 4; }
+      else if (flags & 128) { a = this.f2dot14(cursor); b = this.f2dot14(cursor + 2); cc = this.f2dot14(cursor + 4); d = this.f2dot14(cursor + 6); cursor += 8; }
+      for (const contour of this.glyphContours(child, depth + 1)) {
+        result.push(contour.map((point) => ({ x: a * point.x + cc * point.y + dx, y: b * point.x + d * point.y + dy, on: point.on })));
+      }
+    } while (flags & 32);
+    return result;
+  }
+
+  private flattened(glyph: number): FlatContour[] {
+    const cached = this.flatCache.get(glyph);
+    if (cached) return cached;
+    const flat = this.glyphContours(glyph).map((contour) => flattenContour(contour)).filter((contour) => contour.length >= 3);
+    this.flatCache.set(glyph, flat);
+    return flat;
+  }
+
+  scaledGlyph(char: string, size: number): FlatContour[] {
+    const glyph = this.glyphIndex(char);
+    const key = `${glyph}:${size}`;
+    const cached = this.scaledCache.get(key);
+    if (cached) return cached;
+    const scale = size / this.unitsPerEm;
+    const scaled = this.flattened(glyph).map((contour) => contour.map(([x, y]) => [x * scale, (this.ascender - y) * scale] as const));
+    this.scaledCache.set(key, scaled);
+    return scaled;
+  }
+}
+
+function midpoint(a: Point, b: Point): Point { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, on: true }; }
+
+function flattenContour(points: Contour): FlatContour {
+  if (!points.length) return [];
+  let start: Point, index: number;
+  if (points[0].on) { start = points[0]; index = 1; }
+  else if (points[points.length - 1].on) { start = points[points.length - 1]; index = 0; }
+  else { start = midpoint(points[points.length - 1], points[0]); index = 0; }
+  const output: [number, number][] = [[start.x, start.y]];
+  let current = start, consumed = 0;
+  while (consumed < points.length) {
+    const point = points[index % points.length];
+    if (point.on) {
+      output.push([point.x, point.y]); current = point; index++; consumed++;
+    } else {
+      const rawNext = points[(index + 1) % points.length];
+      const end = rawNext.on ? rawNext : midpoint(point, rawNext);
+      for (let step = 1; step <= 8; step++) {
+        const t = step / 8, inv = 1 - t;
+        output.push([inv * inv * current.x + 2 * inv * t * point.x + t * t * end.x, inv * inv * current.y + 2 * inv * t * point.y + t * t * end.y]);
+      }
+      current = end; index += rawNext.on ? 2 : 1; consumed += rawNext.on ? 2 : 1;
+    }
+  }
+  return output;
+}
+
+export const MERIDIAN_BOLD = new TrueTypeFont(new URL('./fonts/Meridian-Bold.ttf', import.meta.url));
+export const HALDEN = new TrueTypeFont(new URL('./fonts/Halden-Regular.ttf', import.meta.url));
+export const HALDEN_BOLD = new TrueTypeFont(new URL('./fonts/Halden-Bold.ttf', import.meta.url));
+
+export function textWidth(font: TrueTypeFont, text: string, size: number, letterSpacing = 0): number {
+  let width = 0;
+  for (const char of text) width += font.advance(char, size) + letterSpacing;
+  return Math.max(0, width - letterSpacing);
+}
+
+export function drawText(canvas: Canvas, font: TrueTypeFont, text: string, x: number, y: number, size: number, color: Color, letterSpacing = 0): number {
+  let cursor = x;
+  for (const char of text) {
+    const contours = font.scaledGlyph(char, size).map((contour) => contour.map(([px, py]) => [px + cursor, py + y] as const));
+    canvas.multiPolygon(contours, color);
+    cursor += font.advance(char, size) + letterSpacing;
   }
   return cursor;
 }
 
-export function drawCentered(canvas: Canvas, text: string, centerX: number, y: number, height: number, color: Color, tracking = 0.10, widthScale = 1): void {
-  drawText(canvas, text, centerX - textWidth(text, height, tracking, widthScale) / 2, y, height, color, tracking, widthScale);
+export function drawCentered(canvas: Canvas, font: TrueTypeFont, text: string, centerX: number, y: number, size: number, color: Color, letterSpacing = 0): void {
+  drawText(canvas, font, text, centerX - textWidth(font, text, size, letterSpacing) / 2, y, size, color, letterSpacing);
 }
 
-export function fitTextHeight(text: string, maxWidth: number, preferredHeight: number, tracking = 0.10, widthScale = 1): number {
-  const width = textWidth(text, preferredHeight, tracking, widthScale);
-  return width <= maxWidth ? preferredHeight : preferredHeight * maxWidth / width;
+export function fitSize(font: TrueTypeFont, text: string, preferredSize: number, maxWidth: number, floor: number, letterSpacing = 0): number {
+  const width = textWidth(font, text, preferredSize, letterSpacing);
+  return width <= maxWidth ? preferredSize : Math.max(floor, preferredSize * maxWidth / width);
+}
+
+export function wrapText(font: TrueTypeFont, text: string, size: number, maxWidth: number): string[] {
+  const words = text.split(' '), lines: string[] = []; let line = '';
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && textWidth(font, candidate, size) > maxWidth) { lines.push(line); line = word; }
+    else line = candidate;
+  }
+  if (line) lines.push(line);
+  return lines;
 }

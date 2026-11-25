@@ -220,18 +220,24 @@ export const MERIDIAN_BOLD = new TrueTypeFont(new URL('./fonts/Meridian-Bold.ttf
 export const HALDEN = new TrueTypeFont(new URL('./fonts/Halden-Regular.ttf', import.meta.url));
 export const HALDEN_BOLD = new TrueTypeFont(new URL('./fonts/Halden-Bold.ttf', import.meta.url));
 
+export function pairKern(font: TrueTypeFont, previous: string, current: string, size: number): number {
+  return font === MERIDIAN_BOLD && previous.toLowerCase() === 'c' && current.toLowerCase() === 'l' ? size * 0.07 : 0;
+}
+
 export function textWidth(font: TrueTypeFont, text: string, size: number, letterSpacing = 0): number {
-  let width = 0;
-  for (const char of text) width += font.advance(char, size) + letterSpacing;
+  let width = 0, previous = '';
+  for (const char of text) { width += pairKern(font, previous, char, size) + font.advance(char, size) + letterSpacing; previous = char; }
   return Math.max(0, width - letterSpacing);
 }
 
 export function drawText(canvas: Canvas, font: TrueTypeFont, text: string, x: number, y: number, size: number, color: Color, letterSpacing = 0): number {
-  let cursor = x;
+  let cursor = x, previous = '';
   for (const char of text) {
+    cursor += pairKern(font, previous, char, size);
     const contours = font.scaledGlyph(char, size).map((contour) => contour.map(([px, py]) => [px + cursor, py + y] as const));
     canvas.multiPolygon(contours, color);
     cursor += font.advance(char, size) + letterSpacing;
+    previous = char;
   }
   return cursor;
 }

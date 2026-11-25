@@ -35,10 +35,10 @@ export function drawWorldMap(c: Canvas): void {
   // Regional story markers; story 7 appears in both the US and Colombia.
   pin(c, 493, 231, '1');
   pin(c, 544, 338, '2', COLORS.teal);
-  pin(c, 389, 282, '3', COLORS.red);
+  pin(c, 409, 270, '3', COLORS.red);
   pin(c, 351, 216, '4', COLORS.blue);
   pin(c, 125, 224, '5', COLORS.orange);
-  pin(c, 374, 255, '6', COLORS.red);
+  pin(c, 384, 246, '6', COLORS.red);
   pin(c, 160, 248, '7', COLORS.teal);
   pin(c, 204, 324, '7', COLORS.teal);
 

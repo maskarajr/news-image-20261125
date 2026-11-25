@@ -21,6 +21,10 @@ function project([longitude, latitude]: GeoPoint): readonly [number, number] {
   return [x, y];
 }
 
+function geoLand(c: Canvas, outline: readonly GeoPoint[]): void {
+  c.polygon(outline.map(project), COLORS.paleTeal);
+}
+
 function geoPin(c: Canvas, location: GeoPoint, label: string, color: Color = COLORS.orange): void {
   const [x, y] = project(location);
   pin(c, x, y, label, color);
@@ -33,6 +37,8 @@ export function drawWorldMap(c: Canvas): void {
 
   // North America, Central America and Greenland.
   land(c, [[62,220],[82,199],[122,188],[165,196],[192,217],[177,238],[151,243],[137,262],[111,260],[97,246],[76,243]]);
+  // Projected east and southeast US coast: New York and Tennessee remain on land.
+  geoLand(c, [[-100,50],[-75,50],[-65,45],[-64,38],[-72,30],[-80,25],[-92,29],[-100,35]]);
   land(c, [[141,258],[157,266],[168,280],[181,288],[176,296],[158,286]]);
   land(c, [[169,181],[194,168],[219,177],[210,194],[181,196]]);
   // South America.
@@ -41,11 +47,17 @@ export function drawWorldMap(c: Canvas): void {
   land(c, [[303,216],[326,200],[359,203],[375,216],[365,231],[336,235],[316,228]]);
   land(c, [[322,241],[359,236],[382,258],[378,294],[363,331],[345,360],[328,334],[317,298],[302,268]]);
   land(c, [[366,204],[404,187],[466,191],[512,205],[559,225],[572,245],[548,261],[512,251],[490,270],[453,257],[421,244],[388,238]]);
+  // Projected Eastern Europe closes the former seam between Europe and Asia.
+  geoLand(c, [[15,55],[28,59],[42,56],[45,42],[30,43],[20,42],[15,48]]);
+  // A compact projected Arabian Peninsula; Hodeidah lies on its Red Sea edge.
+  geoLand(c, [[34.5,29.5],[39,31.5],[47.5,29],[56,25],[55,17],[47,12.5],[43.3,12.7],[42.95,14.8],[41,20],[38,24]]);
   land(c, [[440,260],[461,273],[450,299],[431,285]]); // India
   land(c, [[546,264],[555,268],[552,287],[545,280]]); // Japan
   // Australia and the Pacific arc.
   land(c, [[484,330],[511,313],[548,320],[565,342],[552,365],[516,371],[491,354]]);
   c.circle(584, 332, 4, COLORS.paleTeal); c.circle(596, 341, 3, COLORS.paleTeal);
+  const blackSea = project([34, 44]);
+  c.ellipse(blackSea[0], blackSea[1], 11, 4, COLORS.ink);
 
   // Every marker is projected from its event location; story 7 has two locations.
   geoPin(c, [100.30, 40.96], '1');                    // Jiuquan

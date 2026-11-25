@@ -113,6 +113,6 @@ export function drawStoryCard(c: Canvas, story: Story, x: number, y: number, wid
   c.line(x + 76, y + 89, x + width - 18, y + 89, 1, COLORS.line);
   drawWrapped(c, story.detail, x + 76, y + 99, width - 96, 1.4, COLORS.grey, 1.2, 3);
   drawText(c, `SOURCE: ${story.source}`, x + 76, y + height - 17, 1.15, story.accent, 0.8);
-  const iconInset = story.icon === 'drone' || story.icon === 'ballot' ? 36 : 44;
+  const iconInset = story.icon === 'drone' ? 32 : story.icon === 'ballot' ? 36 : 44;
   drawIcon(c, story.icon, x + width - iconInset, y + 45, story.accent);
 }

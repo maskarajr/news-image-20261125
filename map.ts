@@ -11,6 +11,21 @@ function pin(c: Canvas, x: number, y: number, label: string, color: Color = COLO
   drawCentered(c, label, x, y - 5, label.length === 1 ? 1.45 : 1.1, COLORS.ink, 0.4);
 }
 
+type GeoPoint = readonly [longitude: number, latitude: number];
+
+// Compact pseudocylindrical projection used to draft the map silhouettes.
+// The cubic term compresses the far Pacific edges into the editorial panel.
+function project([longitude, latitude]: GeoPoint): readonly [number, number] {
+  const x = 315 + 1.9794 * longitude - 0.00001994 * longitude ** 3;
+  const y = 308 - 1.6 * latitude;
+  return [x, y];
+}
+
+function geoPin(c: Canvas, location: GeoPoint, label: string, color: Color = COLORS.orange): void {
+  const [x, y] = project(location);
+  pin(c, x, y, label, color);
+}
+
 export function drawWorldMap(c: Canvas): void {
   // Quiet latitude/longitude guides give the deliberately simplified map context.
   for (const y of [219, 269, 319, 369]) c.line(42, y, 625, y, 1, [67, 105, 127]);
@@ -32,15 +47,15 @@ export function drawWorldMap(c: Canvas): void {
   land(c, [[484,330],[511,313],[548,320],[565,342],[552,365],[516,371],[491,354]]);
   c.circle(584, 332, 4, COLORS.paleTeal); c.circle(596, 341, 3, COLORS.paleTeal);
 
-  // Regional story markers; story 7 appears in both the US and Colombia.
-  pin(c, 493, 231, '1');
-  pin(c, 544, 338, '2', COLORS.teal);
-  pin(c, 409, 270, '3', COLORS.red);
-  pin(c, 351, 216, '4', COLORS.blue);
-  pin(c, 125, 224, '5', COLORS.orange);
-  pin(c, 384, 246, '6', COLORS.red);
-  pin(c, 160, 248, '7', COLORS.teal);
-  pin(c, 204, 324, '7', COLORS.teal);
+  // Every marker is projected from its event location; story 7 has two locations.
+  geoPin(c, [100.30, 40.96], '1');                    // Jiuquan
+  geoPin(c, [149.13, -35.2809], '2', COLORS.teal);   // Canberra
+  geoPin(c, [42.95, 14.80], '3', COLORS.red);         // Hodeidah / Red Sea
+  geoPin(c, [30.62, 48.47], '4', COLORS.blue);        // Odesa–Kyiv midpoint
+  geoPin(c, [-73.9496, 40.6501], '5', COLORS.orange); // Brooklyn
+  geoPin(c, [34.4668, 31.5017], '6', COLORS.red);     // Gaza
+  geoPin(c, [-86.7816, 36.1627], '7', COLORS.teal);  // Tennessee
+  geoPin(c, [-75.4794, 10.3910], '7', COLORS.teal);  // Cartagena
 
   drawText(c, 'WORLD DESK / 7 STORIES / 5 BEATS', 45, 394, 1.35, COLORS.white, 0.8);
 }

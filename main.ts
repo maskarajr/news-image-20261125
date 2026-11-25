@@ -1,101 +1,89 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Canvas, COLORS } from './canvas.ts';
+import { ALL_DRAWN_STRINGS, DATE_ITEMS, PAGE, STATS, WIRES } from './content.ts';
 import { drawCentered, drawText, textWidth } from './font.ts';
-import { drawLocatorMap, drawRegionKey } from './map.ts';
-import { drawLeadItem, drawWireItem, STORIES } from './stories.ts';
+import { drawLeadTile, LEADS } from './stories.ts';
 import { encodePng } from './png.ts';
 
 const WIDTH = 1024;
 const HEIGHT = 1024;
 const canvas = new Canvas(WIDTH, HEIGHT, 2, COLORS.paper);
 
-function sectionBar(label: string, x: number, y: number, width: number, color = COLORS.ink): void {
-  canvas.rect(x, y, width, 22, color);
-  drawText(canvas, label, x + 10, y + 6, 1.15, COLORS.white, 0.65);
+function sectionBar(text: string, x: number, y: number, width: number, color = COLORS.ink): void {
+  canvas.rect(x, y, width, 31, color);
+  drawText(canvas, text, x + 11, y + 7, 18, COLORS.white, 0.04);
 }
 
 function masthead(): void {
-  canvas.rect(0, 0, WIDTH, 18, COLORS.ink);
-  drawText(canvas, 'GLOBAL DAILY / ONE-DAY EDITION', 24, 5, 1.0, COLORS.white, 0.6);
-  const audit = '16 STORIES / 6 REGIONS / ALL DATED, ALL SOURCED';
-  drawText(canvas, audit, 1000 - textWidth(audit, 1.0, 0.6), 5, 1.0, COLORS.white, 0.6);
-
-  drawCentered(canvas, 'THE WORLD TODAY', WIDTH / 2, 26, 6.7, COLORS.ink, 0.85);
-  canvas.rect(24, 76, 976, 3, COLORS.ink);
-  canvas.rect(24, 83, 976, 29, COLORS.red);
-  drawCentered(canvas, 'WEDNESDAY, 25 NOVEMBER 2026', WIDTH / 2, 89, 2.45, COLORS.white, 0.7);
+  canvas.rect(0, 0, WIDTH, 24, COLORS.ink);
+  drawText(canvas, PAGE.edition, 24, 6, 12, COLORS.white, 0.04);
+  drawText(canvas, PAGE.audit, 1000 - textWidth(PAGE.audit, 12, 0.04), 6, 12, COLORS.white, 0.04);
+  drawCentered(canvas, PAGE.masthead, WIDTH / 2, 31, 60, COLORS.ink, 0.06);
+  canvas.rect(24, 96, 976, 3, COLORS.ink);
+  canvas.rect(24, 104, 976, 34, COLORS.red);
+  drawCentered(canvas, PAGE.date, WIDTH / 2, 110, 22, COLORS.white, 0.05);
 }
 
 function statStrip(): void {
-  const stats: readonly [string, string][] = [
-    ['-6.16%', 'KOSPI'], ['4.9%', 'AUSTRALIA CPI'], ['+36%', 'GARMENT WAGE'],
-    ['7', 'DRONES STOPPED'], ['~30', 'HOSTAGES SAFE'], ['03:56', 'UTC DOCKING'],
-  ];
-  const x = 24, y = 118, width = 976, cellWidth = width / stats.length;
-  canvas.rect(x, y, width, 48, COLORS.ink);
-  stats.forEach(([value, label], index) => {
-    const cellX = x + index * cellWidth;
-    if (index > 0) canvas.rect(cellX, y + 6, 1, 36, [73, 89, 99]);
-    drawCentered(canvas, value, cellX + cellWidth / 2, y + 7, 2.0, index % 2 ? COLORS.orange : COLORS.white, 0.65);
-    drawCentered(canvas, label, cellX + cellWidth / 2, y + 31, 0.85, [190, 204, 200], 0.55);
+  const x = 24, y = 146, width = 976, cellWidth = width / STATS.length;
+  canvas.rect(x, y, width, 70, COLORS.ink);
+  STATS.forEach(([value, label], index) => {
+    const left = x + index * cellWidth;
+    if (index) canvas.rect(left, y + 9, 1, 52, [71, 88, 99]);
+    drawCentered(canvas, value, left + cellWidth / 2, y + 8, 32, index % 2 ? COLORS.orange : COLORS.white, 0.04);
+    drawCentered(canvas, label, left + cellWidth / 2, y + 48, 14, [202, 214, 209], 0.03);
   });
 }
 
-function leadColumns(): void {
-  sectionBar('TODAY / 12 ILLUSTRATED LEAD REPORTS', 24, 174, 976);
-  const xs = [24, 354, 684];
-  const ys = [201, 323, 445, 567];
-  for (const divider of [344, 674]) canvas.rect(divider, 201, 1, 482, COLORS.line);
-  STORIES.slice(0, 12).forEach((story, index) => {
-    drawLeadItem(canvas, story, xs[index % 3], ys[Math.floor(index / 3)], 316, 116);
-  });
+function leadDesk(): void {
+  sectionBar(PAGE.leadSection, 24, 224, 976);
+  const xs = [24, 518];
+  const ys = [263, 382, 501, 620];
+  LEADS.forEach((story, index) => drawLeadTile(canvas, story, xs[index % 2], ys[Math.floor(index / 2)], 482, 112));
 }
 
 function wireDesk(): void {
-  sectionBar('ALSO ON 25 NOVEMBER / WIRE DESK', 24, 692, 620, COLORS.teal);
-  STORIES.slice(12).forEach((story, index) => drawWireItem(canvas, story, 24, 718 + index * 37, 620));
+  const x = 24, y = 744, width = 584;
+  sectionBar(PAGE.wireSection, x, y, width, COLORS.teal);
+  WIRES.forEach((wire, index) => {
+    const rowY = 782 + index * 29;
+    canvas.line(x, rowY + 24, x + width, rowY + 24, 1, COLORS.line);
+    canvas.rect(x, rowY, 28, 23, index % 2 ? COLORS.orange : COLORS.blue);
+    drawCentered(canvas, wire.number, x + 14, rowY + 4, 15, COLORS.white, 0.02);
+    drawText(canvas, wire.line, x + 37, rowY + 3, 15, COLORS.ink, 0.025);
+  });
 }
 
 function dateCheck(): void {
-  const x = 24, y = 872, width = 620, height = 143;
+  const x = 620, y = 744, width = 380, height = 271;
   canvas.rect(x, y, width, height, COLORS.ink);
   canvas.rect(x + 2, y + 2, width - 4, height - 4, COLORS.white);
-  canvas.rect(x + 2, y + 2, 132, 25, COLORS.red);
-  drawText(canvas, 'DATE CHECK', x + 12, y + 8, 1.35, COLORS.white, 0.65);
-  drawText(canvas, 'EVERY ITEM ABOVE HAPPENED OR WAS FIRST REPORTED ON 25 NOV.', x + 146, y + 9, 0.82, COLORS.ink, 0.5);
-  const earlier = [
-    '24 NOV / RIYADH TOWER HIT; 11 WOUNDED. REUTERS / ARAB NEWS',
-    '24 NOV / HUAWEI CONVICTED; RACKETEERING ACQUITTAL. DOJ / REUTERS / AP',
-    '24 NOV / REAL MADRID 5-1 PSV. UEFA / BBC SPORT',
-    '24 NOV / GAZA STRIKES KILL 7, INCLUDING ABU NAHEL. BBC / AL-MONITOR / DAWN',
-    '24 NOV / CAS REINSTATES SENEGAL AS 2025 AFCON CHAMPIONS. ANADOLU / BBC / CAS',
-  ];
-  earlier.forEach((line, index) => {
-    const rowY = y + 35 + index * 18;
-    canvas.rect(x + 11, rowY + 2, 5, 5, index % 2 ? COLORS.orange : COLORS.red);
-    drawText(canvas, line, x + 23, rowY, 0.82, COLORS.grey, 0.5);
+  canvas.rect(x + 2, y + 2, width - 4, 29, COLORS.red);
+  drawText(canvas, PAGE.dateCheck, x + 12, y + 7, 18, COLORS.white, 0.04);
+  drawText(canvas, PAGE.dateStatement, x + 12, y + 39, 15, COLORS.ink, 0.025);
+  DATE_ITEMS.forEach((item, index) => {
+    const rowY = y + 66 + index * 38;
+    canvas.rect(x + 12, rowY + 4, 6, 6, index % 2 ? COLORS.orange : COLORS.red);
+    drawText(canvas, item.event, x + 25, rowY, 15, COLORS.ink, 0.02, 0.95);
+    drawText(canvas, item.source, x + 25, rowY + 18, 15, COLORS.grey, 0.02, 0.95);
   });
-  drawText(canvas, 'TUESDAY ITEMS / CONTEXT ONLY / NOT WEDNESDAY LEADS', x + 23, y + 129, 0.8, COLORS.red, 0.5);
-}
-
-function locator(): void {
-  sectionBar('WHERE IT HAPPENED / 16 VERIFIED LOCATIONS', 656, 692, 344, COLORS.blue);
-  drawLocatorMap(canvas, 656, 720, 344, 213);
-  drawRegionKey(canvas, 661, 943);
-  drawText(canvas, 'PINS 01-16 FOLLOW STORY NUMBERS', 661, 998, 0.82, COLORS.grey, 0.55);
+  drawText(canvas, PAGE.dateFooter, x + 12, y + 252, 15, COLORS.red, 0.02);
 }
 
 function footer(): void {
   canvas.rect(24, 1019, 976, 5, COLORS.orange);
 }
 
+// Keep the text registry linked into the executable so audit coverage cannot
+// silently drift from the page content.
+if (ALL_DRAWN_STRINGS.length === 0) throw new Error('Text registry is empty');
+
 masthead();
 statStrip();
-leadColumns();
+leadDesk();
 wireDesk();
 dateCheck();
-locator();
 footer();
 
 const outputDirectory = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';

@@ -15,13 +15,19 @@ export const COLORS = {
 
 export class Canvas {
   readonly pixels: Uint8Array;
+  readonly width: number;
+  readonly height: number;
+  readonly scale: number;
 
   constructor(
-    readonly width: number,
-    readonly height: number,
-    readonly scale = 2,
+    width: number,
+    height: number,
+    scale = 2,
     background: Color = COLORS.paper,
   ) {
+    this.width = width;
+    this.height = height;
+    this.scale = scale;
     this.pixels = new Uint8Array(width * scale * height * scale * 4);
     this.clear(background);
   }

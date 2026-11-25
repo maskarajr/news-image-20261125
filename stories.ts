@@ -1,100 +1,32 @@
 import { Canvas, COLORS, type Color } from './canvas.ts';
-import { HALDEN, HALDEN_BOLD, MERIDIAN_BOLD, drawCentered, drawText, fitSize, wrapText } from './font.ts';
-import type { LeadStory, Region } from './content.ts';
+import { HALDEN, HALDEN_BOLD, MERIDIAN_BOLD, drawCentered, drawText, fitSize, textWidth, wrapText } from './font.ts';
+import type { Badge, LeadStory, Region, Scene } from './content.ts';
 
-export const REGION_COLORS: Record<Region, Color> = {
-  Asia: [185, 112, 33], Oceania: [35, 112, 113], 'Middle East': [177, 55, 48],
-  Europe: [47, 79, 105], Americas: [100, 72, 120], World: [162, 73, 103],
-};
+export const REGION_COLORS:Record<Region,Color>={Asia:[185,112,33],Europe:[47,79,105],Africa:[83,119,76],Americas:[100,72,120],'Middle East':[177,55,48],Oceania:[35,112,113],World:[162,73,103]};
+export const BADGE_COLORS:Record<Badge,Color>={OFFICIAL:[47,79,105],CONFIRMED:[35,112,113],REPORTED:[185,112,33],CLAIM:[177,55,48]};
+const SKY:Color=[219,226,222],STONE:Color=[236,229,213],SLATE:Color=[54,82,105],AMBER:Color=[214,139,51],RED:Color=[177,55,48],SEA:Color=[107,153,158];
 
-const SKY: Color = [219, 226, 222];
-const STONE: Color = [236, 229, 213];
-const SLATE: Color = [54, 82, 105];
-const AMBER: Color = [214, 139, 51];
-const CRIMSON: Color = [177, 55, 48];
-const SEA: Color = [107, 153, 158];
-
-function sceneBase(c: Canvas, x: number, y: number, width: number, height: number): void {
-  c.rect(x, y, width, height, SKY);
-  c.rect(x, y + height * 0.72, width, height * 0.28, STONE);
+function base(c:Canvas,x:number,y:number,w:number,h:number,night=false):void{c.rect(x,y,w,h,night?[34,54,69]:SKY);c.rect(x,y+h*.72,w,h*.28,night?[55,66,70]:STONE);}
+function scene(c:Canvas,name:Scene,x:number,y:number,w:number,h:number):void{
+  base(c,x,y,w,h,name==='asteroid');const hz=y+h*.72,b=y+h;
+  if(name==='rocket'){c.circle(x+w*.8,y+14,7,AMBER);c.polygon([[x,hz],[x+w*.25,hz-10],[x+w*.5,hz],[x+w*.76,hz-8],[x+w,hz],[x+w,b],[x,b]],[202,177,126]);const r=x+w*.48;c.rect(r-12,y+14,3,hz-y-14,SLATE);c.polygon([[r+5,y+8],[r+12,y+21],[r+11,hz-5],[r+1,hz-5],[r,y+21]],COLORS.white);c.circle(r+6,y+22,2.5,SEA);c.polygon([[r+2,hz-4],[r+6,b-2],[r+10,hz-4]],RED);}
+  else if(name==='market'||name==='stocks'){c.rect(x,hz,w,h*.28,[61,73,78]);for(let i=0;i<8;i++){const bh=8+(i%4)*5;c.rect(x+6+i*(w-12)/8,hz-bh,w*.065,bh,[95,115,116]);}c.rect(x+w*.56,y+8,w*.36,h*.5,[246,242,230]);const color=name==='stocks'?RED:RED;c.line(x+w*.59,y+16,x+w*.68,y+25,2.5,color);c.line(x+w*.68,y+25,x+w*.77,y+19,2.5,color);c.line(x+w*.77,y+19,x+w*.89,y+35,2.5,color);}
+  else if(name==='tariffs'){c.rect(x,hz-5,w,h*.34,SEA);for(let i=0;i<5;i++)c.rect(x+8+i*w*.16,hz-14-(i%2)*8,w*.13,14+(i%2)*8,i%2?RED:AMBER);c.line(x+w*.78,y+7,x+w*.78,hz,2.5,SLATE);c.line(x+w*.78,y+8,x+w*.55,y+22,2.5,SLATE);c.polygon([[x+w*.08,hz+2],[x+w*.92,hz+2],[x+w*.79,hz+12],[x+w*.2,hz+12]],SLATE);}
+  else if(name==='treaty'){c.polygon([[x+w*.12,hz],[x+w*.5,y+10],[x+w*.88,hz]],[201,194,174]);c.circle(x+w*.5,y+18,9,SLATE);c.rect(x+w*.18,hz-4,w*.64,4,SLATE);for(let i=0;i<5;i++)c.rect(x+w*(.27+i*.115),y+29,4,hz-y-29,SLATE);for(const dx of [.22,.78]){c.line(x+w*dx,y+7,x+w*dx,y+30,1.5,SLATE);c.polygon([[x+w*dx,y+8],[x+w*(dx+(dx<.5?.13:-.13)),y+12],[x+w*dx,y+17]],dx<.5?AMBER:SEA);}}
+  else if(name==='court'){c.polygon([[x+w*.13,y+24],[x+w*.5,y+6],[x+w*.87,y+24]],SLATE);c.rect(x+w*.15,y+24,w*.7,4,SLATE);for(let i=0;i<5;i++)c.rect(x+w*(.22+i*.14),y+28,4,hz-y-28,SLATE);c.line(x+w*.5,y+12,x+w*.5,hz-5,1.5,AMBER);c.line(x+w*.36,y+20,x+w*.64,y+20,1.5,AMBER);c.circle(x+w*.35,y+26,5,AMBER);c.circle(x+w*.65,y+26,5,AMBER);}
+  else if(name==='tankers'){c.rect(x,hz-6,w,h*.38,SEA);c.polygon([[x,hz],[x+w*.17,hz-16],[x+w*.32,hz],[x+w*.72,hz],[x+w*.86,hz-13],[x+w,hz]],[117,107,80]);for(const sx of [.28,.7]){c.polygon([[x+w*(sx-.15),hz+1],[x+w*(sx+.15),hz+1],[x+w*(sx+.1),hz+10],[x+w*(sx-.1),hz+10]],SLATE);c.rect(x+w*sx-6,hz-9,12,10,SLATE);}for(const sx of [.46,.56,.84])c.circle(x+w*sx,hz+16,3,RED);}
+  else if(name==='refinery'){c.rect(x,hz,w,h*.28,[84,89,84]);c.ellipse(x+w*.2,hz,w*.09,5,SLATE);c.rect(x+w*.11,hz,w*.18,h*.22,SLATE);c.rect(x+w*.43,y+13,w*.07,hz-y-13,SLATE);c.rect(x+w*.62,y+20,w*.1,hz-y-20,SLATE);c.polygon([[x+w*.46,y+12],[x+w*.5,y+3],[x+w*.54,y+13]],RED);c.polygon([[x+w*.08,y+11],[x+w*.34,y+16],[x+w*.18,y+21]],COLORS.ink);}
+  else if(name==='rescue'){c.rect(x+w*.08,y+9,w*.84,hz-y-9,[218,207,184]);c.rect(x+w*.08,y+9,w*.84,9,RED);for(const dx of [.18,.42,.67])c.rect(x+w*dx,y+25,w*.16,hz-y-25,SLATE);c.rect(x+w*.58,hz+3,w*.27,8,[76,82,80]);for(const dx of [.2,.33,.47]){c.circle(x+w*dx,hz+2,2.5,AMBER);c.rect(x+w*dx-1.5,hz+4,3,8,COLORS.ink);}}
+  else if(name==='port'){c.rect(x,hz-5,w,h*.34,SEA);c.polygon([[x+w*.1,hz+1],[x+w*.65,hz+1],[x+w*.57,hz+11],[x+w*.2,hz+11]],SLATE);c.line(x+w*.78,y+8,x+w*.78,hz,2.5,SLATE);c.line(x+w*.78,y+9,x+w*.56,y+21,2.5,SLATE);c.circle(x+w*.8,y+20,7,AMBER);c.circle(x+w*.85,y+15,4,RED);}
+  else if(name==='clinic'){c.rect(x+w*.08,y+10,w*.84,hz-y-10,[216,211,196]);c.rect(x+w*.38,y+20,w*.24,hz-y-20,SLATE);c.rect(x+w*.46,y+6,w*.08,22,RED);c.rect(x+w*.4,y+13,w*.2,8,RED);for(const dx of [.2,.3,.7,.8]){c.circle(x+w*dx,hz+1,2.5,AMBER);c.rect(x+w*dx-1.5,hz+3,3,8,COLORS.ink);}}
+  else if(name==='city'){c.rect(x,hz,w,h*.28,[75,82,82]);c.rect(x+w*.1,y+15,w*.19,hz-y-15,SLATE);c.rect(x+w*.35,y+8,w*.24,hz-y-8,SLATE);c.rect(x+w*.66,y+21,w*.17,hz-y-21,SLATE);c.line(x+w*.84,y+8,x+w*.84,hz,2,RED);c.line(x+w*.75,y+20,x+w*.91,y+20,2,RED);c.line(x+w*.78,y+14,x+w*.89,y+28,2,RED);}
+  else if(name==='asteroid'){for(const p of [[.14,.24,1.5],[.3,.15,1],[.8,.18,1.3],[.68,.4,1]])c.circle(x+w*p[0],y+h*p[1],p[2],COLORS.white);c.circle(x+w*.68,y+h*.55,h*.2,[142,139,128]);c.circle(x+w*.58,y+h*.45,h*.09,[178,171,151]);c.polygon([[x+w*.2,y+h*.38],[x+w*.36,y+h*.43],[x+w*.26,y+h*.49]],COLORS.white);c.line(x+w*.1,y+h*.38,x+w*.38,y+h*.38,1.5,AMBER);}
 }
 
-function scene(c: Canvas, name: LeadStory['scene'], x: number, y: number, width: number, height: number): void {
-  sceneBase(c, x, y, width, height);
-  const bottom = y + height, horizon = y + height * 0.72;
-  if (name === 'rocket') {
-    c.circle(x + width * .78, y + 19, 8, AMBER);
-    c.polygon([[x,horizon],[x + width*.23,horizon-15],[x + width*.48,horizon],[x + width*.7,horizon-11],[x+width,horizon],[x+width,bottom],[x,bottom]], [202,177,126]);
-    const rx=x+width*.47; c.rect(rx-14,y+19,3,horizon-y-19,SLATE); c.line(rx-12,y+24,rx+10,y+37,2,SLATE);
-    c.polygon([[rx+10,y+14],[rx+18,y+30],[rx+16,horizon-9],[rx+4,horizon-9],[rx+2,y+30]],COLORS.white); c.circle(rx+10,y+31,3,SEA);
-    c.polygon([[rx+6,horizon-7],[rx+10,bottom-3],[rx+14,horizon-7]],CRIMSON); c.line(rx+18,y+12,x+width*.74,y+8,1.5,COLORS.white);
-    for(const [sx,sy] of [[.12,.2],[.22,.35],[.66,.28],[.88,.4]]) c.circle(x+width*sx,y+height*sy,1.5,COLORS.white);
-  } else if (name === 'market') {
-    c.rect(x,horizon,width,height*.28,[62,73,78]);
-    for(let i=0;i<9;i++){const bw=width*.07,bx=x+8+i*(width-16)/9,bh=12+(i%4)*7;c.rect(bx,horizon-bh,bw,bh,[92,112,115]);}
-    c.circle(x+width*.18,y+22,12,AMBER); c.rect(x+width*.58,y+15,width*.32,height*.45,[245,241,229]);
-    const px=x+width*.61,py=y+25;c.line(px,py,px+width*.08,py+12,3,CRIMSON);c.line(px+width*.08,py+12,px+width*.16,py+6,3,CRIMSON);c.line(px+width*.16,py+6,px+width*.25,py+27,3,CRIMSON);
-    for(let i=0;i<3;i++) c.rect(x+width*.63+i*18,y+height*.49-i*5,8,9+i*5,SEA);
-  } else if (name === 'treaty') {
-    c.polygon([[x+width*.1,horizon],[x+width*.5,y+18],[x+width*.9,horizon]], [201,194,174]); c.circle(x+width*.5,y+28,13,SLATE);
-    c.rect(x+width*.15,horizon-5,width*.7,5,SLATE); for(let i=0;i<5;i++) c.rect(x+width*(.24+i*.13),y+43,5,horizon-y-43,SLATE);
-    c.rect(x+width*.34,horizon+6,width*.32,6,[126,91,60]);
-    for(const dx of [.28,.72]){c.circle(x+width*dx,horizon+2,5,CRIMSON);c.rect(x+width*dx-3,horizon+7,6,12,SLATE);}
-    c.line(x+width*.18,y+11,x+width*.18,y+39,2,SLATE); c.polygon([[x+width*.18,y+12],[x+width*.31,y+16],[x+width*.18,y+22]],AMBER);
-    c.line(x+width*.82,y+11,x+width*.82,y+39,2,SLATE); c.polygon([[x+width*.82,y+12],[x+width*.69,y+16],[x+width*.82,y+22]],SEA);
-  } else if (name === 'port') {
-    c.rect(x,horizon-8,width,height*.36,SEA); c.polygon([[x+width*.12,horizon+1],[x+width*.65,horizon+1],[x+width*.58,horizon+14],[x+width*.22,horizon+14]],SLATE);
-    c.rect(x+width*.32,horizon-14,width*.16,15,SLATE); c.line(x+width*.76,y+15,x+width*.76,horizon,3,SLATE); c.line(x+width*.76,y+16,x+width*.55,y+31,3,SLATE); c.line(x+width*.55,y+31,x+width*.55,horizon-3,2,SLATE);
-    c.circle(x+width*.79,y+29,11,AMBER); c.circle(x+width*.84,y+23,6,CRIMSON); c.circle(x+width*.74,y+20,5,CRIMSON);
-    c.line(x+8,bottom-6,x+width*.92,bottom-6,2,[229,235,230]);
-  } else if (name === 'refinery') {
-    c.rect(x,horizon,width,height*.28,[84,89,84]); c.ellipse(x+width*.2,horizon-2,width*.1,7,SLATE); c.rect(x+width*.1,horizon-2,width*.2,height*.23,SLATE);
-    c.rect(x+width*.42,y+24,width*.07,horizon-y-24,SLATE); c.rect(x+width*.58,y+34,width*.1,horizon-y-34,SLATE); c.rect(x+width*.76,y+18,width*.06,horizon-y-18,SLATE);
-    c.polygon([[x+width*.45,y+22],[x+width*.49,y+8],[x+width*.53,y+23]],CRIMSON); c.circle(x+width*.5,y+13,7,AMBER);
-    c.polygon([[x+width*.12,y+18],[x+width*.38,y+24],[x+width*.2,y+29]],COLORS.ink); c.line(x+width*.04,y+18,x+width*.4,y+18,2,COLORS.ink);
-  } else if (name === 'rescue') {
-    c.rect(x+width*.1,y+18,width*.8,horizon-y-18,[218,207,184]); c.rect(x+width*.1,y+18,width*.8,13,CRIMSON); c.rect(x+width*.18,y+39,width*.17,horizon-y-39,SLATE); c.rect(x+width*.42,y+39,width*.17,horizon-y-39,SLATE); c.rect(x+width*.67,y+39,width*.15,horizon-y-39,SLATE);
-    c.rect(x+width*.6,horizon+5,width*.25,10,[76,82,80]); c.circle(x+width*.65,horizon+16,4,COLORS.ink); c.circle(x+width*.8,horizon+16,4,COLORS.ink);
-    for(const dx of [.22,.35,.48]){c.circle(x+width*dx,horizon+3,3,AMBER);c.rect(x+width*dx-2,horizon+6,4,11,COLORS.ink);}
-    c.line(x+width*.15,y+36,x+width*.85,y+36,2,AMBER);
-  } else if (name === 'tariffs') {
-    c.rect(x,horizon-6,width,height*.34,SEA); for(let i=0;i<5;i++) c.rect(x+12+i*25,horizon-17-(i%2)*10,22,17+(i%2)*10,[i%2?177:198, i%2?82:135, i%2?61:52]);
-    c.line(x+width*.78,y+12,x+width*.78,horizon,3,SLATE); c.line(x+width*.78,y+13,x+width*.55,y+30,3,SLATE); c.line(x+width*.55,y+30,x+width*.55,horizon-18,2,SLATE);
-    c.polygon([[x+width*.08,horizon+2],[x+width*.92,horizon+2],[x+width*.78,horizon+16],[x+width*.22,horizon+16]],SLATE);
-  } else {
-    c.rect(x,horizon-9,width,height*.4,SEA); c.polygon([[x,horizon],[x+width*.18,horizon-20],[x+width*.34,horizon],[x+width*.7,horizon],[x+width*.85,horizon-16],[x+width,horizon]], [117,107,80]);
-    for(const sx of [.26,.68]){c.polygon([[x+width*(sx-.16),horizon+2],[x+width*(sx+.16),horizon+2],[x+width*(sx+.1),horizon+13],[x+width*(sx-.1),horizon+13]],SLATE);c.rect(x+width*sx-7,horizon-11,14,13,SLATE);}
-    for(const sx of [.45,.55,.82]){c.circle(x+width*sx,horizon+19,4,CRIMSON);c.line(x+width*sx-7,horizon+19,x+width*sx+7,horizon+19,1.5,CRIMSON);}
-  }
-}
+function badge(c:Canvas,story:LeadStory,x:number,y:number,fontSize:number):void{const color=BADGE_COLORS[story.badge],w=textWidth(HALDEN_BOLD,story.badge,fontSize)+10;c.rect(x-w,y,w,16,color);drawText(c,HALDEN_BOLD,story.badge,x-w+5,y+2,fontSize,COLORS.white);}
+function callout(c:Canvas,story:LeadStory,x:number,y:number,fontSize:number):void{const w=textWidth(HALDEN_BOLD,story.callout,fontSize)+9;c.rect(x-w,y,w,15,COLORS.ink);drawText(c,HALDEN_BOLD,story.callout,x-w+4,y+2,fontSize,COLORS.white);}
+function lines(c:Canvas,font:typeof HALDEN,text:string,x:number,y:number,size:number,width:number,max:number,step:number,color:Color):void{wrapText(font,text,size,width).slice(0,max).forEach((line,i)=>drawText(c,font,line,x,y+i*step,size,color));}
+function regionLine(story:LeadStory):string{return `${story.region} · ${story.place}`;}
 
-function drawWrapped(c: Canvas, font: typeof HALDEN, text: string, x: number, y: number, size: number, width: number, color: Color, maxLines: number, lineHeight: number): number {
-  const lines = wrapText(font, text, size, width).slice(0, maxLines);
-  lines.forEach((line, index) => drawText(c, font, line, x, y + index * lineHeight, size, color));
-  return lines.length;
-}
-
-function regionLine(story: LeadStory): string { return `${story.region} · ${story.place}`; }
-
-export function drawHeroLead(c: Canvas, story: LeadStory, x: number, y: number, width: number, height: number): void {
-  const accent = REGION_COLORS[story.region];
-  scene(c, story.scene, x, y, width, 96);
-  c.circle(x + 18, y + 18, 13, accent); drawCentered(c, HALDEN_BOLD, String(story.number), x + 18, y + 9, 14, COLORS.white);
-  drawText(c, HALDEN_BOLD, regionLine(story), x, y + 104, 13, accent);
-  const headlineSize = fitSize(MERIDIAN_BOLD, story.headline, 27, width, 23);
-  drawWrapped(c, MERIDIAN_BOLD, story.headline, x, y + 123, headlineSize, width, COLORS.ink, 2, 27);
-  drawWrapped(c, HALDEN, story.deck, x, y + 176, 13.5, width, COLORS.grey, 2, 15);
-  drawText(c, HALDEN, story.source, x, y + height - 14, 13, accent);
-}
-
-export function drawMidLead(c: Canvas, story: LeadStory, x: number, y: number, width: number, height: number): void {
-  const accent = REGION_COLORS[story.region];
-  scene(c, story.scene, x, y, width, 70);
-  c.circle(x + 15, y + 15, 11, accent); drawCentered(c, HALDEN_BOLD, String(story.number), x + 15, y + 7, 12, COLORS.white);
-  if (story.claim) { c.rect(x + width - 49, y + 5, 44, 17, CRIMSON); drawCentered(c, HALDEN_BOLD, 'CLAIM', x + width - 27, y + 8, 10.5, COLORS.white); }
-  drawText(c, HALDEN_BOLD, regionLine(story), x, y + 77, 12, accent);
-  const headlineSize = fitSize(MERIDIAN_BOLD, story.headline, 21, width, 18.5);
-  drawWrapped(c, MERIDIAN_BOLD, story.headline, x, y + 95, headlineSize, width, COLORS.ink, 2, 22);
-  drawWrapped(c, HALDEN, story.deck, x, y + 141, 13, width, COLORS.grey, 2, 14);
-  drawWrapped(c, HALDEN, story.source, x, y + 184, 13, width, accent, 2, 14);
-}
+export function drawHeroCard(c:Canvas,story:LeadStory,x:number,y:number,w:number,h:number):void{const accent=REGION_COLORS[story.region];scene(c,story.scene,x,y,w,68);c.circle(x+14,y+14,11,accent);drawCentered(c,HALDEN_BOLD,String(story.number),x+14,y+7,12,COLORS.white);badge(c,story,x+w-4,y+4,9);callout(c,story,x+w-4,y+49,9);drawText(c,HALDEN_BOLD,regionLine(story),x,y+74,11.5,accent);const hs=fitSize(MERIDIAN_BOLD,story.headline,22,w,19);lines(c,MERIDIAN_BOLD,story.headline,x,y+90,hs,w,2,21,COLORS.ink);lines(c,HALDEN,story.deck,x,y+132,12,w,2,13.5,COLORS.grey);drawText(c,HALDEN,story.source,x,y+h-13,11.5,accent);}
+export function drawMidCard(c:Canvas,story:LeadStory,x:number,y:number,w:number,h:number,compact=false):void{const accent=REGION_COLORS[story.region],sceneH=compact?44:48;scene(c,story.scene,x,y,w,sceneH);c.circle(x+12,y+12,9,accent);drawCentered(c,HALDEN_BOLD,String(story.number),x+12,y+6,10,COLORS.white);badge(c,story,x+w-3,y+3,7.5);callout(c,story,x+w-3,y+sceneH-14,7.5);drawText(c,HALDEN_BOLD,regionLine(story),x,y+sceneH+5,10.5,accent);const hs=fitSize(MERIDIAN_BOLD,story.headline,compact?15.5:16.5,w,compact?14:14.5);lines(c,MERIDIAN_BOLD,story.headline,x,y+sceneH+19,hs,w,2,17,COLORS.ink);lines(c,HALDEN,story.deck,x,y+sceneH+53,11,w,compact?1:2,12,COLORS.grey);drawText(c,HALDEN,story.source,x,y+h-11,10.5,accent);}

@@ -1,72 +1,17 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';import { join } from 'node:path';
 import { Canvas, COLORS } from './canvas.ts';
-import { ALL_DRAWN_STRINGS, DATE_PARAGRAPH, KICKERS, LEADS, PAGE, STATS, WIRES } from './content.ts';
+import { ALL_DRAWN_STRINGS, BADGE_LEGEND, BRIEFS, DATE_PARAGRAPH, LEADS, PAGE, REGION_COUNTS } from './content.ts';
 import { HALDEN, HALDEN_BOLD, MERIDIAN_BOLD, drawCentered, drawText, fitSize, textWidth, wrapText } from './font.ts';
-import { drawLocator } from './map.ts';
-import { drawHeroLead, drawMidLead } from './stories.ts';
-import { encodePng } from './png.ts';
+import { drawLocator } from './map.ts';import { BADGE_COLORS, REGION_COLORS, drawHeroCard, drawMidCard } from './stories.ts';import { encodePng } from './png.ts';
 
-const WIDTH=1024,HEIGHT=1024,canvas=new Canvas(WIDTH,HEIGHT,2,[246,241,229]);
-const INK=COLORS.ink, MUTED:[number,number,number]=[91,98,96], STONE:[number,number,number]=[236,229,213], RED:[number,number,number]=[177,55,48];
-
-function masthead():void{
-  canvas.rect(24,0,976,2,INK);
-  drawText(canvas,HALDEN_BOLD,PAGE.runningLeft,24,5,12,INK);
-  drawText(canvas,HALDEN_BOLD,PAGE.runningRight,1000-textWidth(HALDEN_BOLD,PAGE.runningRight,12),5,12,INK);
-  canvas.line(24,22,1000,22,1,[126,127,119]);
-  drawCentered(canvas,MERIDIAN_BOLD,PAGE.date,512,25,64,INK,-0.35);
-  canvas.line(24,96,1000,96,1.5,INK);
-  const auditSize=fitSize(HALDEN,PAGE.audit,12.5,960,11.5);
-  drawCentered(canvas,HALDEN,PAGE.audit,512,101,auditSize,MUTED);
-  canvas.line(24,121,1000,121,1,[172,169,158]);
-}
-
-function kicker():void{
-  const widths=KICKERS.map((item)=>textWidth(MERIDIAN_BOLD,item,16));
-  const diamond=12,total=widths.reduce((a,b)=>a+b,0)+diamond*2+48;
-  let x=(1024-total)/2;
-  KICKERS.forEach((item,index)=>{
-    drawText(canvas,MERIDIAN_BOLD,item,x,127,16,INK);x+=widths[index]+16;
-    if(index<2){canvas.polygon([[x+6,133],[x+11,138],[x+6,143],[x+1,138]],[185,112,33]);x+=diamond+8;}
-  });
-}
-
-function stats():void{
-  const x=24,y=154,width=976,cell=width/STATS.length;canvas.rect(x,y,width,56,STONE);
-  STATS.forEach(([value,label],index)=>{const left=x+index*cell;if(index)canvas.rect(left,y+8,1,40,[202,196,181]);
-    drawCentered(canvas,HALDEN_BOLD,value,left+cell/2,y+4,29,index===0?RED:INK);
-    const size=fitSize(HALDEN,label,12.5,cell-10,11.5);drawCentered(canvas,HALDEN,label,left+cell/2,y+37,size,MUTED);
-  });
-}
-
-function leads():void{
-  const heroX=[24,354,684];LEADS.slice(0,3).forEach((story,index)=>drawHeroLead(canvas,story,heroX[index],216,316,225));
-  const gap=8,width=(976-gap*4)/5;LEADS.slice(3).forEach((story,index)=>drawMidLead(canvas,story,24+index*(width+gap),449,width,224));
-  canvas.line(24,680,1000,680,1,INK);
-}
-
-function wires():void{
-  const x=306,y=686,width=694,colWidth=337;drawText(canvas,MERIDIAN_BOLD,PAGE.wires,x,y,19,INK);
-  WIRES.forEach((story,index)=>{const col=index<6?0:1,row=col===0?index:index-6,left=x+col*(colWidth+20),top=y+27+row*36;
-    canvas.circle(left+8,top+8,8,[47,79,105]);drawCentered(canvas,HALDEN_BOLD,String(story.number),left+8,top+3,10,COLORS.white);
-    const line=`${story.place} · ${story.summary}`,available=colWidth-24,size=fitSize(HALDEN_BOLD,line,13,available,13);
-    drawText(canvas,HALDEN_BOLD,line,left+22,top,size,INK);
-    const sourceSize=fitSize(HALDEN,story.source,13,available,13);drawText(canvas,HALDEN,story.source,left+22,top+16,sourceSize,MUTED);
-    if(row<(col===0?5:4))canvas.line(left+22,top+31,left+colWidth,top+31,1,[215,210,198]);
-  });
-}
-
-function dateCheck():void{
-  const y=936;canvas.line(24,y-5,1000,y-5,1.5,INK);canvas.rect(24,y,4,80,RED);
-  drawText(canvas,HALDEN_BOLD,PAGE.dateLabel,36,y+2,13,RED);
-  const textX=126,textWidthMax=874,size=12.5,lines=wrapText(HALDEN,DATE_PARAGRAPH,size,textWidthMax);
-  lines.slice(0,5).forEach((line,index)=>drawText(canvas,HALDEN,line,textX,y+index*15,size,INK));
-}
-
-if(!ALL_DRAWN_STRINGS.length)throw new Error('Text registry is empty');
-masthead();kicker();stats();leads();drawLocator(canvas,24,686,270,226);wires();dateCheck();canvas.rect(24,1019,976,5,[214,139,51]);
-
-const outputDirectory=process.env.MAKEFUN_OUTPUT_DIR??'/output';mkdirSync(outputDirectory,{recursive:true});
-const outputPath=join(outputDirectory,'entry.png'),png=encodePng(WIDTH,HEIGHT,canvas.downsample());writeFileSync(outputPath,png);
-console.log(`Wrote ${outputPath} (${png.length} bytes)`);
+const W=1024,H=1024,INK:[number,number,number]=[15,32,47],CREAM:[number,number,number]=[251,248,241],STONE:[number,number,number]=[236,229,213],MUTED:[number,number,number]=[91,98,96],AMBER:[number,number,number]=[214,139,51];
+const c=new Canvas(W,H,2,[246,241,229]);
+function masthead():void{c.rect(0,0,W,84,INK);drawText(c,HALDEN_BOLD,PAGE.runningLeft,24,6,11.5,[217,210,192]);drawText(c,HALDEN_BOLD,PAGE.runningRight,1000-textWidth(HALDEN_BOLD,PAGE.runningRight,11.5),6,11.5,[217,210,192]);drawCentered(c,MERIDIAN_BOLD,PAGE.date,512,20,56,CREAM,-.25);c.rect(0,81,W,3,AMBER);}
+function regions():void{let x=24;for(const item of REGION_COUNTS){const width=976*item.count/33;c.rect(x,87,width,9,REGION_COLORS[item.region]);x+=width;}const size=fitSize(HALDEN_BOLD,PAGE.regionSummary,11.8,976,10.5);drawCentered(c,HALDEN_BOLD,PAGE.regionSummary,512,100,size,INK);}
+function timeline():void{c.rect(24,120,976,24,STONE);c.rect(24,120,111,24,INK);drawCentered(c,HALDEN_BOLD,PAGE.utcLabel,79.5,126,10.5,CREAM);const size=fitSize(HALDEN_BOLD,PAGE.utcLine,11.7,846,10.5);drawText(c,HALDEN_BOLD,PAGE.utcLine,145,126,size,INK);}
+function cards():void{const heroX=[24,354,684];LEADS.slice(0,3).forEach((s,i)=>drawHeroCard(c,s,heroX[i],150,316,186));const gap=8,w=(976-gap*4)/5;LEADS.slice(3,8).forEach((s,i)=>drawMidCard(c,s,24+i*(w+gap),342,w,144));LEADS.slice(8,13).forEach((s,i)=>drawMidCard(c,s,24+i*(w+gap),492,w,134,true));c.line(24,631,1000,631,1,INK);}
+function briefs():void{const x=374,y=634,colW=303;drawText(c,MERIDIAN_BOLD,PAGE.briefs,x,y,17,INK);BRIEFS.forEach((s,i)=>{const col=i<10?0:1,row=col===0?i:i-10,left=x+col*(colW+20),top=y+24+row*25,color=REGION_COLORS[s.region];c.circle(left+7,top+6,6,color);drawCentered(c,HALDEN_BOLD,String(s.number),left+7,top+1.5,8.5,COLORS.white, s.number>9?-.3:0);const line=`${s.place} · ${s.summary}`,available=colW-20,size=fitSize(HALDEN_BOLD,line,11.5,available,10.5);drawText(c,HALDEN_BOLD,line,left+18,top,size,INK);const ss=fitSize(HALDEN,s.source,11,available,10.3);drawText(c,HALDEN,s.source,left+18,top+12,ss,MUTED);c.line(left+18,top+23,left+colW,top+23,1,[216,211,199]);});}
+function badgeLegend():void{c.line(24,909,1000,909,1,[163,161,151]);let x=24;drawText(c,HALDEN_BOLD,PAGE.badgeLegend,x,913,10.5,INK);x+=textWidth(HALDEN_BOLD,PAGE.badgeLegend,10.5)+10;for(const item of BADGE_LEGEND){c.circle(x+3,918,3,BADGE_COLORS[item.badge]);x+=10;drawText(c,HALDEN_BOLD,item.badge,x,913,10.5,BADGE_COLORS[item.badge]);x+=textWidth(HALDEN_BOLD,item.badge,10.5)+4;drawText(c,HALDEN,item.label,x,913,10.5,INK);x+=textWidth(HALDEN,item.label,10.5)+18;}}
+function dateCheck():void{const y=934;c.line(24,y-3,1000,y-3,1.5,INK);c.rect(24,y,4,82,BADGE_COLORS.CLAIM);drawText(c,HALDEN_BOLD,PAGE.dateLabel,36,y+2,12,BADGE_COLORS.CLAIM);const lines=wrapText(HALDEN,DATE_PARAGRAPH,11.5,874);lines.slice(0,6).forEach((line,i)=>drawText(c,HALDEN,line,126,y+i*13,11.5,INK));}
+if(!ALL_DRAWN_STRINGS.length)throw new Error('Text registry empty');masthead();regions();timeline();cards();drawLocator(c,24,634,332);briefs();badgeLegend();dateCheck();c.rect(24,1019,976,5,AMBER);
+const dir=process.env.MAKEFUN_OUTPUT_DIR??'/output';mkdirSync(dir,{recursive:true});const path=join(dir,'entry.png'),png=encodePng(W,H,c.downsample());writeFileSync(path,png);console.log(`Wrote ${path} (${png.length} bytes)`);

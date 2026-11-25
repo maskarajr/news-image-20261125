@@ -1,79 +1,16 @@
-import { ALL_DRAWN_STRINGS, DATE_PARAGRAPH, KICKERS, LEADS, MAP_POINTS, PAGE, STATS, WIRES } from '../content.ts';
-import { HALDEN, HALDEN_BOLD, MERIDIAN_BOLD, fitSize, textWidth, wrapText, type TrueTypeFont } from '../font.ts';
-
-const problems:string[]=[];
-const required=['Strait of Hormuz','Ras Tanura','Hodeidah','Shenzhou-24','Zeeshan Ali','Dimorphos','Cartagena','Sylvain Astier','Yonhap','Ukrinform','Al Jazeera','Al-Monitor','Balleny','Middletown','Éxito'];
-const forbidden=['STRAIT OF HAHNUZ','RAN TANURA','ALONI FACTS','YON-HAP','INDEP-UKRINFORM'];
-const corpus=ALL_DRAWN_STRINGS.join('\n');
-
-ALL_DRAWN_STRINGS.forEach((text,index)=>{
-  console.log(`${String(index+1).padStart(3,'0')}  ${text}`);
-  if(!text.length)problems.push(`String ${index+1} is empty`);
-  if(text.includes('...')||text.includes('…'))problems.push(`String ${index+1} appears truncated`);
-  for(const char of text){if(!HALDEN.hasGlyph(char))problems.push(`Halden lacks ${JSON.stringify(char)} in string ${index+1}`);if(!MERIDIAN_BOLD.hasGlyph(char))problems.push(`Meridian lacks ${JSON.stringify(char)} in string ${index+1}`);}
-});
-
-for(const name of required)if(!corpus.includes(name))problems.push(`Required spelling absent: ${name}`);
-for(const typo of forbidden)if(corpus.toUpperCase().includes(typo))problems.push(`Forbidden garble present: ${typo}`);
-if(corpus.toUpperCase().includes('SOUTHERN OCEAN'))problems.push('SOUTHERN OCEAN appears as a region');
-if(!DATE_PARAGRAPH.includes('23 Nov — leaked Rosstat'))problems.push('Rosstat analysis is not labeled 23 Nov');
-if(DATE_PARAGRAPH.includes('24 Nov — leaked Rosstat'))problems.push('Rosstat analysis incorrectly labeled 24 Nov');
-if(LEADS.length!==8||WIRES.length!==11||STATS.length>6)problems.push(`Count mismatch: ${LEADS.length} leads, ${WIRES.length} wires, ${STATS.length} stats`);
-
-const storyNumbers=[...LEADS.map((story)=>story.number),...WIRES.map((story)=>story.number)].sort((a,b)=>a-b);
-const pinNumbers=MAP_POINTS.map((point)=>point.number).sort((a,b)=>a-b);
-const expected=Array.from({length:19},(_,index)=>index+1).join(',');
-if(storyNumbers.join(',')!==expected)problems.push(`Story numbering mismatch: ${storyNumbers.join(',')}`);
-if(pinNumbers.join(',')!==expected)problems.push(`Pin numbering mismatch: ${pinNumbers.join(',')}`);
-
-function checkWidth(font:TrueTypeFont,text:string,size:number,width:number,label:string,letterSpacing=0):void{
-  const measured=textWidth(font,text,size,letterSpacing);
-  if(measured>width+0.01)problems.push(`${label} is ${measured.toFixed(1)}px wide in a ${width.toFixed(1)}px box`);
-}
-function checkFitted(font:TrueTypeFont,text:string,preferred:number,width:number,floor:number,label:string):void{
-  const size=fitSize(font,text,preferred,width,floor);
-  checkWidth(font,text,size,width,label);
-}
-function checkWrapped(font:TrueTypeFont,text:string,size:number,width:number,maxLines:number,label:string):void{
-  const lines=wrapText(font,text,size,width);
-  if(lines.length>maxLines)problems.push(`${label} needs ${lines.length} lines; box allows ${maxLines}`);
-  lines.forEach((line,index)=>checkWidth(font,line,size,width,`${label} line ${index+1}`));
-}
-
-checkWidth(HALDEN_BOLD,PAGE.runningLeft,12,320,'Running bar left');
-checkWidth(HALDEN_BOLD,PAGE.runningRight,12,420,'Running bar right');
-checkWidth(MERIDIAN_BOLD,PAGE.date,64,1024,'Masthead date',-0.35);
-checkFitted(HALDEN,PAGE.audit,12.5,960,11.5,'Audit bar');
-const kickerWidth=KICKERS.reduce((sum,item)=>sum+textWidth(MERIDIAN_BOLD,item,16),0)+72;
-if(kickerWidth>1024)problems.push(`Kicker strip is ${kickerWidth.toFixed(1)}px wide in a 1024px box`);
-const statWidth=976/STATS.length;
-for(const [value,label] of STATS){checkWidth(HALDEN_BOLD,value,29,statWidth,`Stat ${value}`);checkFitted(HALDEN,label,12.5,statWidth-10,11.5,`Stat label ${label}`);}
-
-for(const story of LEADS){
-  if(story.headline.split(/\s+/).length>8)problems.push(`Headline ${story.number} exceeds eight words`);
-  const maxWidth=story.number===1||story.number===2||story.number===7?316:188.8;
-  const preferred=story.number===1||story.number===2||story.number===7?27:21;
-  const floor=story.number===1||story.number===2||story.number===7?23:18.5;
-  const headlineSize=fitSize(MERIDIAN_BOLD,story.headline,preferred,maxWidth,floor);
-  checkWrapped(MERIDIAN_BOLD,story.headline,headlineSize,maxWidth,2,`Headline ${story.number}`);
-  const deckSize=story.number===1||story.number===2||story.number===7?13.5:13;
-  checkWrapped(HALDEN,story.deck,deckSize,maxWidth,2,`Deck ${story.number}`);
-  checkWrapped(HALDEN,story.source,13,maxWidth,story.number===1||story.number===2||story.number===7?1:2,`Source ${story.number}`);
-  checkWidth(HALDEN_BOLD,`${story.region} · ${story.place}`,story.number===1||story.number===2||story.number===7?13:12,maxWidth,`Place ${story.number}`);
-}
-checkWidth(MERIDIAN_BOLD,PAGE.map,18,270,'Map heading');
-checkFitted(HALDEN,PAGE.mapLegendOne,11.5,270,10,'Map legend one');
-checkFitted(HALDEN,PAGE.mapLegendTwo,11.5,270,10,'Map legend two');
-for(const point of MAP_POINTS)checkWidth(HALDEN_BOLD,String(point.number),8.5,10.4,`Map pin ${point.number}`,point.number>9?-0.5:0);
-checkWidth(MERIDIAN_BOLD,PAGE.wires,19,694,'Wire heading');
-for(const story of WIRES){
-  const line=`${story.place} · ${story.summary}`;
-  checkWidth(HALDEN_BOLD,line,13,313,`Wire ${story.number} summary`);
-  checkWidth(HALDEN,story.source,13,313,`Wire ${story.number} source`);
-}
-checkWidth(HALDEN_BOLD,PAGE.dateLabel,13,90,'DATE CHECK label');
-checkWrapped(HALDEN,DATE_PARAGRAPH,12.5,874,5,'DATE CHECK paragraph');
-
-console.log(`\nTEXT AUDIT: ${ALL_DRAWN_STRINGS.length} strings, ${problems.length} problems`);
-for(const problem of problems)console.error(`- ${problem}`);
-if(problems.length)process.exitCode=1;
+import { existsSync, readFileSync } from 'node:fs';import { join } from 'node:path';
+import { ALL_DRAWN_STRINGS, BADGE_LEGEND, BRIEFS, DATE_PARAGRAPH, LEADS, MAP_POINTS, PAGE, REGION_COUNTS } from '../content.ts';
+import { HALDEN, HALDEN_BOLD, MERIDIAN_BOLD, fitSize, textWidth, wrapText, type TrueTypeFont } from '../font.ts';import { computePinCenters } from '../map.ts';
+const problems:string[]=[];const required=['Strait of Hormuz','Ras Tanura','Hodeidah','Shenzhou-24','Zeeshan Ali','Dimorphos','Cartagena','Sylvain Astier','Yonhap','Ukrinform','Balleny','Middletown','Éxito','Ramaphosa','Phala Phala','Abuelouf','Beni','Mundubile','Eurostar'];const corpus=ALL_DRAWN_STRINGS.join('\n');
+ALL_DRAWN_STRINGS.forEach((text,i)=>{console.log(`${String(i+1).padStart(3,'0')}  ${text}`);if(!text)problems.push(`String ${i+1} empty`);if(text.includes('...')||text.includes('…')||text.includes('≈'))problems.push(`String ${i+1} has forbidden glyph or truncation`);for(const ch of text){if(!HALDEN.hasGlyph(ch)||!MERIDIAN_BOLD.hasGlyph(ch))problems.push(`Missing TTF glyph ${JSON.stringify(ch)} in string ${i+1}`);}});
+for(const word of required)if(!corpus.includes(word))problems.push(`Required spelling absent: ${word}`);
+if(corpus.includes('SOUTHERN OCEAN'))problems.push('Forbidden region SOUTHERN OCEAN present');if(!DATE_PARAGRAPH.includes('23 Nov — leaked Rosstat'))problems.push('Rosstat date is not 23 Nov');if(!DATE_PARAGRAPH.includes('24 Nov —')||!DATE_PARAGRAPH.includes('CAS restores Senegal'))problems.push('CAS ruling is not separated under 24 Nov');for(const bad of ['Ethiopia polio Round 1','WHO evacuates Akwe Ebola team'])if(LEADS.some(s=>`${s.headline} ${s.deck}`.includes(bad))||BRIEFS.some(s=>`${s.summary}`.includes(bad)))problems.push(`${bad} incorrectly appears as a 25 Nov story`);
+if(LEADS.length!==13||BRIEFS.length!==20)problems.push(`Wrong story split ${LEADS.length}+${BRIEFS.length}`);const nums=[...LEADS.map(s=>s.number),...BRIEFS.map(s=>s.number)].join(','),expected=Array.from({length:33},(_,i)=>i+1).join(',');if(nums!==expected)problems.push(`Reading order mismatch: ${nums}`);if(MAP_POINTS.map(p=>p.number).join(',')!==expected)problems.push('Map pins are not strict 1–33');
+const counts=new Map<string,number>();for(const p of MAP_POINTS)counts.set(p.region,(counts.get(p.region)??0)+1);for(const r of REGION_COUNTS)if(counts.get(r.region)!==r.count)problems.push(`${r.region} count mismatch`);const valid=new Set(['OFFICIAL','CONFIRMED','REPORTED','CLAIM']);for(const s of LEADS)if(!valid.has(s.badge))problems.push(`Invalid badge on ${s.number}`);if(LEADS.find(s=>s.number===6)?.badge!=='CLAIM')problems.push('Hormuz #6 is not CLAIM');
+function width(font:TrueTypeFont,text:string,size:number,box:number,label:string,spacing=0):void{const w=textWidth(font,text,size,spacing);if(w>box+.01)problems.push(`${label} ${w.toFixed(1)}px > ${box.toFixed(1)}px`);}function wrapped(font:TrueTypeFont,text:string,size:number,box:number,max:number,label:string):void{const lines=wrapText(font,text,size,box);if(lines.length>max)problems.push(`${label} needs ${lines.length}/${max} lines`);lines.forEach((l,i)=>width(font,l,size,box,`${label} line ${i+1}`));}
+width(HALDEN_BOLD,PAGE.runningLeft,11.5,300,'Running left');width(HALDEN_BOLD,PAGE.runningRight,11.5,370,'Running right');width(MERIDIAN_BOLD,PAGE.date,56,1024,'Date',-.25);const rs=fitSize(HALDEN_BOLD,PAGE.regionSummary,11.8,976,10.5);width(HALDEN_BOLD,PAGE.regionSummary,rs,976,'Region summary');width(HALDEN_BOLD,PAGE.utcLabel,10.5,101,'UTC label');const us=fitSize(HALDEN_BOLD,PAGE.utcLine,11.7,846,10.5);width(HALDEN_BOLD,PAGE.utcLine,us,846,'UTC line');
+for(const s of LEADS){const hero=s.number<=3,compact=s.number>=9,box=hero?316:188.8,hs=fitSize(MERIDIAN_BOLD,s.headline,hero?22:compact?15.5:16.5,box,hero?19:compact?14:14.5);wrapped(MERIDIAN_BOLD,s.headline,hs,box,2,`Headline ${s.number}`);wrapped(HALDEN,s.deck,hero?12:11,box,hero||!compact?2:1,`Deck ${s.number}`);width(HALDEN,s.source,hero?11.5:10.5,box,`Source ${s.number}`);width(HALDEN_BOLD,`${s.region} · ${s.place}`,hero?11.5:10.5,box,`Place ${s.number}`);width(HALDEN_BOLD,s.callout,hero?9:7.5,box-9,`Callout ${s.number}`);width(HALDEN_BOLD,s.badge,hero?9:7.5,box-10,`Badge ${s.number}`);}
+width(MERIDIAN_BOLD,PAGE.briefs,17,626,'Brief heading');for(const s of BRIEFS){width(HALDEN_BOLD,`${s.place} · ${s.summary}`,11.5,283,`Brief ${s.number}`);width(HALDEN,s.source,11,283,`Brief source ${s.number}`);}let legendWidth=textWidth(HALDEN_BOLD,PAGE.badgeLegend,10.5)+10;for(const item of BADGE_LEGEND)legendWidth+=10+textWidth(HALDEN_BOLD,item.badge,10.5)+4+textWidth(HALDEN,item.label,10.5)+18;if(legendWidth>976)problems.push(`Badge legend ${legendWidth.toFixed(1)}px > 976px`);wrapped(HALDEN,DATE_PARAGRAPH,11.5,874,6,'DATE CHECK');
+const centers=computePinCenters();for(let i=0;i<centers.length;i++)for(let j=i+1;j<centers.length;j++){const d=Math.hypot(centers[i].cx-centers[j].cx,centers[i].cy-centers[j].cy);if(d<10.5)problems.push(`Pins ${centers[i].number}/${centers[j].number} overlap at ${d.toFixed(1)}px`);}
+const png=join(process.env.MAKEFUN_OUTPUT_DIR??'out','entry.png');if(existsSync(png)){const data=readFileSync(png);if(data.length>921600)problems.push(`PNG ${data.length} bytes exceeds 900KB target`);if(data.readUInt32BE(16)!==1024||data.readUInt32BE(20)!==1024)problems.push('PNG is not 1024×1024');}else problems.push(`PNG missing for size audit: ${png}`);
+console.log(`\nTEXT AUDIT: ${ALL_DRAWN_STRINGS.length} strings, ${problems.length} problems`);for(const p of problems)console.error(`- ${p}`);if(problems.length)process.exitCode=1;

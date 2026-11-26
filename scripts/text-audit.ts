@@ -11,8 +11,43 @@ const counts=new Map<string,number>();for(const p of MAP_POINTS)counts.set(p.reg
 function width(font:TrueTypeFont,text:string,size:number,box:number,label:string,spacing=0):void{const w=textWidth(font,text,size,spacing);if(w>box+.01)problems.push(`${label} ${w.toFixed(1)}px > ${box.toFixed(1)}px`);}function wrapped(font:TrueTypeFont,text:string,size:number,box:number,max:number,label:string):void{const lines=wrapText(font,text,size,box);if(lines.length>max)problems.push(`${label} needs ${lines.length}/${max} lines`);lines.forEach((l,i)=>width(font,l,size,box,`${label} line ${i+1}`));}
 width(HALDEN_BOLD,PAGE.runningLeft,11.5,300,'Running left');width(HALDEN_BOLD,PAGE.runningRight,11.5,370,'Running right');width(MERIDIAN_BOLD,PAGE.date,56,1024,'Date',-.25);const rs=fitSize(HALDEN_BOLD,PAGE.regionSummary,11.8,976,10.5);width(HALDEN_BOLD,PAGE.regionSummary,rs,976,'Region summary');width(HALDEN_BOLD,PAGE.utcLabel,10.5,101,'UTC label');width(HALDEN_BOLD,PAGE.utcLine,12.5,846,'UTC line');
 for(const s of LEADS){const hero=s.number<=3,compact=s.number>=9,box=hero?316:188.8,hs=fitWrappedSize(MERIDIAN_BOLD,s.headline,hero?24:compact?18:18.5,box,hero?21:16,2);const headlineLines=balancedWrapText(MERIDIAN_BOLD,s.headline,hs,box,2);if(headlineLines.length>2)problems.push(`Headline ${s.number} exceeds two lines`);headlineLines.forEach((line,i)=>width(MERIDIAN_BOLD,line,hs,box,`Headline ${s.number} line ${i+1}`));const deckLines=wrapText(HALDEN,s.deck,hero?12:11,box),deckMax=hero||!compact?2:1;if(deckLines.length>deckMax)problems.push(`Deck ${s.number} needs ${deckLines.length}/${deckMax} lines`);deckLines.forEach((line,i)=>width(HALDEN,line,hero?12:11,box,`Deck ${s.number} line ${i+1}`));width(HALDEN,s.source,hero?11.5:10.5,box,`Source ${s.number}`);width(HALDEN_BOLD,`${s.region} · ${s.place}`,hero?11.5:10.5,box,`Place ${s.number}`);width(HALDEN_BOLD,s.callout,hero?9:7.5,box-9,`Callout ${s.number}`);width(HALDEN_BOLD,s.badge,hero?9:7.5,box-10,`Badge ${s.number}`);const sceneH=hero?68:compact?44:48,headlineY=hero?90:sceneH+19,headlineStep=hero?23:compact?18:19,deckY=hero?139:sceneH+(compact?60:62),sourceY=hero?167:compact?131:137,headlineBottom=headlineY+(headlineLines.length-1)*headlineStep+hs*.78,deckBottom=deckY+(deckLines.length-1)*(hero?13.5:12)+(hero?12:11)*.78;if(deckY-headlineBottom<6)problems.push(`Card ${s.number} headline/deck gap ${(deckY-headlineBottom).toFixed(1)}px < 6px`);if(sourceY-deckBottom<1)problems.push(`Card ${s.number} deck/source overlap`);}
-width(MERIDIAN_BOLD,PAGE.briefs,17,626,'Brief heading');for(const s of BRIEFS){width(HALDEN_BOLD,`${s.place} · ${s.summary}`,12,283,`Brief ${s.number}`);width(HALDEN,s.source,11,283,`Brief source ${s.number}`);}let legendWidth=textWidth(HALDEN_BOLD,PAGE.badgeLegend,10.5)+10;for(const item of BADGE_LEGEND)legendWidth+=10+textWidth(HALDEN_BOLD,item.badge,10.5)+4+textWidth(HALDEN,item.label,10.5)+18;if(legendWidth>976)problems.push(`Badge legend ${legendWidth.toFixed(1)}px > 976px`);const mapLegendWidth=MAP_REGION_LABELS.reduce((sum,label)=>sum+11+textWidth(HALDEN,label,8.5),0)+6*(MAP_REGION_LABELS.length-1);if(mapLegendWidth>332)problems.push(`Map legend ${mapLegendWidth.toFixed(1)}px > 332px`);wrapped(HALDEN,DATE_PARAGRAPH,12,874,3,'DATE CHECK');
+width(MERIDIAN_BOLD, PAGE.briefs, 17, 626, 'Brief heading');
+// Check glyphs at the same horizontal position: an accent and a descender can share a scanline.
+function glyphBoxes(font: TrueTypeFont, text: string, size: number, y: number) {
+  const boxes = [];
+  let x = 0;
+  for (const char of text) {
+    const points = font.scaledGlyph(char, size).flat();
+    if (points.length) {
+      const xs = points.map(p => x + p[0]), ys = points.map(p => y + p[1]);
+      boxes.push({left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys)});
+    }
+    x += font.advance(char, size);
+  }
+  return boxes;
+}
+for (const story of BRIEFS) {
+  const line = `${story.place} · ${story.summary}`;
+  const size = fitSize(HALDEN_BOLD, line, 14, 283, 13);
+  width(HALDEN_BOLD, line, size, 283, `Brief ${story.number}`);
+  width(HALDEN, story.source, 12, 283, `Brief source ${story.number}`);
+  width(HALDEN_BOLD, String(story.number), 9.5, 14, `Brief number ${story.number}`, -.3);
+  const summary = glyphBoxes(HALDEN_BOLD, line, size, 0);
+  const source = glyphBoxes(HALDEN, story.source, 12, 15);
+  if (summary.some(a => source.some(b => a.left < b.right && b.left < a.right && a.bottom > b.top))) {
+    problems.push(`Brief ${story.number} summary overlaps its source`);
+  }
+  if (summary.some(g => g.top < 1) || source.some(g => g.bottom > 30)) {
+    problems.push(`Brief ${story.number} crosses its row divider`);
+  }
+}
+let legendWidth = textWidth(HALDEN_BOLD, PAGE.badgeLegend, 10.5) + 10;
+for (const item of BADGE_LEGEND) legendWidth += 10 + textWidth(HALDEN_BOLD, item.badge, 10.5) + 4 + textWidth(HALDEN, item.label, 10.5) + 18;
+if (legendWidth + textWidth(HALDEN, PAGE.mapCredit, 12) > 976) problems.push('Badge legend overlaps map credit');
+const mapLegendWidth = MAP_REGION_LABELS.reduce((sum, label) => sum + 11 + textWidth(HALDEN, label, 8.5), 0) + 6 * (MAP_REGION_LABELS.length - 1);
+if (mapLegendWidth > 332) problems.push(`Map legend ${mapLegendWidth.toFixed(1)}px > 332px`);
+wrapped(HALDEN, DATE_PARAGRAPH, 12, 874, 2, 'DATE CHECK');
 const centers=computePinCenters();for(const center of centers){const leader=Math.hypot(center.cx-center.ax,center.cy-center.ay);if(leader>14.1)problems.push(`Pin ${center.number} leader ${leader.toFixed(1)}px > 14px`);}for(let i=0;i<centers.length;i++)for(let j=i+1;j<centers.length;j++){const d=Math.hypot(centers[i].cx-centers[j].cx,centers[i].cy-centers[j].cy);if(d<10.5)problems.push(`Pins ${centers[i].number}/${centers[j].number} overlap at ${d.toFixed(1)}px`);}
-const png=join(process.env.MAKEFUN_OUTPUT_DIR??'out','entry.png');if(existsSync(png)){const data=readFileSync(png);if(data.length>921600)problems.push(`PNG ${data.length} bytes exceeds 900KB target`);if(data.readUInt32BE(16)!==1024||data.readUInt32BE(20)!==1024)problems.push('PNG is not 1024×1024');}else problems.push(`PNG missing for size audit: ${png}`);
+const png=join(process.env.MAKEFUN_OUTPUT_DIR??'out','entry.png');if(existsSync(png)){const data=readFileSync(png);if(data.length>=300000)problems.push(`PNG ${data.length} bytes must be under 300000`);if(data.readUInt32BE(16)!==1024||data.readUInt32BE(20)!==1024)problems.push('PNG is not 1024×1024');}else problems.push(`PNG missing for size audit: ${png}`);
 for(const file of ['main.ts','map.ts','world-land.ts','canvas.ts','font.ts','stories.ts','content.ts','png.ts']){const source=readFileSync(file,'utf8');for(const match of source.matchAll(/from\s+['"]([^'"]+)['"]/g)){const specifier=match[1];if(!specifier.startsWith('.')&&!specifier.startsWith('node:'))problems.push(`${file} has external runtime import ${specifier}`);}}
 console.log(`\nTEXT AUDIT: ${ALL_DRAWN_STRINGS.length} strings, ${problems.length} problems`);for(const p of problems)console.error(`- ${p}`);if(problems.length)process.exitCode=1;

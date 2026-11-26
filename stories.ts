@@ -26,8 +26,25 @@ function scene(c:Canvas,name:Scene,x:number,y:number,w:number,h:number):void{
 function badge(c:Canvas,story:LeadStory,x:number,y:number,fontSize:number):void{const color=BADGE_COLORS[story.badge],w=textWidth(HALDEN_BOLD,story.badge,fontSize)+10;c.rect(x-w,y,w,16,color);drawText(c,HALDEN_BOLD,story.badge,x-w+5,y+2,fontSize,COLORS.white);}
 function callout(c:Canvas,story:LeadStory,x:number,y:number,fontSize:number):void{const w=textWidth(HALDEN_BOLD,story.callout,fontSize)+9;c.rect(x-w,y,w,15,COLORS.ink);drawText(c,HALDEN_BOLD,story.callout,x-w+4,y+2,fontSize,COLORS.white);}
 function lines(c:Canvas,font:typeof HALDEN,text:string,x:number,y:number,size:number,width:number,max:number,step:number,color:Color):void{wrapText(font,text,size,width).slice(0,max).forEach((line,i)=>drawText(c,font,line,x,y+i*step,size,color));}
-function headline(c:Canvas,text:string,x:number,y:number,size:number,width:number,step:number):void{balancedWrapText(MERIDIAN_BOLD,text,size,width,2).slice(0,2).forEach((line,i)=>drawText(c,MERIDIAN_BOLD,line,x,y+i*step,size,COLORS.ink));}
+function headline(c:Canvas,text:string,x:number,y:number,size:number,width:number,step:number,color:Color=COLORS.ink):void{balancedWrapText(MERIDIAN_BOLD,text,size,width,2).slice(0,2).forEach((line,i)=>drawText(c,MERIDIAN_BOLD,line,x,y+i*step,size,color));}
 function regionLine(story:LeadStory):string{return `${story.region} · ${story.place}`;}
 
-export function drawHeroCard(c:Canvas,story:LeadStory,x:number,y:number,w:number,h:number):void{const accent=REGION_COLORS[story.region];scene(c,story.scene,x,y,w,68);c.circle(x+14,y+14,11,accent);drawCentered(c,HALDEN_BOLD,String(story.number),x+14,y+7,12,COLORS.white);badge(c,story,x+w-4,y+4,9);callout(c,story,x+w-4,y+49,9);drawText(c,HALDEN_BOLD,regionLine(story),x,y+74,11.5,accent);const hs=fitWrappedSize(MERIDIAN_BOLD,story.headline,24,w,21,2);headline(c,story.headline,x,y+90,hs,w,23);lines(c,HALDEN,story.deck,x,y+139,12,w,2,13.5,COLORS.grey);drawText(c,HALDEN,story.source,x,y+h-13,11.5,accent);}
+export function drawHeroCard(c: Canvas, story: LeadStory, x: number, y: number, w: number, h: number): void {
+  const accent = REGION_COLORS[story.region];
+  const dark = story.number <= 2;
+  const captionColor = dark ? AMBER : accent;
+  const sceneHeight = 68;
+  scene(c, story.scene, x, y, w, sceneHeight);
+  c.circle(x + 14, y + 14, 11, accent);
+  drawCentered(c, HALDEN_BOLD, String(story.number), x + 14, y + 7, 12, COLORS.white);
+  badge(c, story, x + w - 4, y + 4, 9);
+  callout(c, story, x + w - 4, y + 49, 9);
+
+  if (dark) c.rect(x, y + sceneHeight, w, h - sceneHeight, COLORS.ink);
+  drawText(c, HALDEN_BOLD, regionLine(story), x, y + 74, 11.5, captionColor);
+  const hs = fitWrappedSize(MERIDIAN_BOLD, story.headline, 24, w, 21, 2);
+  headline(c, story.headline, x, y + 90, hs, w, 23, dark ? COLORS.white : COLORS.ink);
+  lines(c, HALDEN, story.deck, x, y + 139, 12, w, 2, 13.5, dark ? STONE : COLORS.grey);
+  drawText(c, HALDEN, story.source, x, y + h - 13, 11.5, captionColor);
+}
 export function drawMidCard(c:Canvas,story:LeadStory,x:number,y:number,w:number,h:number,compact=false):void{const accent=REGION_COLORS[story.region],sceneH=compact?44:48;scene(c,story.scene,x,y,w,sceneH);c.circle(x+12,y+12,9,accent);drawCentered(c,HALDEN_BOLD,String(story.number),x+12,y+6,10,COLORS.white);badge(c,story,x+w-3,y+3,7.5);callout(c,story,x+w-3,y+sceneH-14,7.5);drawText(c,HALDEN_BOLD,regionLine(story),x,y+sceneH+5,10.5,accent);const hs=fitWrappedSize(MERIDIAN_BOLD,story.headline,compact?18:18.5,w,16,2);headline(c,story.headline,x,y+sceneH+19,hs,w,compact?18:19);lines(c,HALDEN,story.deck,x,y+sceneH+(compact?60:62),11,w,compact?1:2,12,COLORS.grey);drawText(c,HALDEN,story.source,x,y+h-11,10.5,accent);}

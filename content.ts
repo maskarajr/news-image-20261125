@@ -10,7 +10,7 @@ export const PAGE={
   runningLeft:'THE WORLD IN ONE DAY',runningRight:'ALL 33 STORIES DATED WEDNESDAY 25 NOV',date:'Wednesday 25 November 2026',
   regionSummary:'33 stories, all dated 25 Nov 2026 · Asia 7 · Europe 6 · Africa 5 · Americas 5 · Middle East 4 · Oceania 4 · World 2',
   utcLabel:'THE DAY IN UTC',utcLine:'00:19 Shenzhou-24 launch · 01:38 M5.9 quake · 03:56 Tiangong dock · 06:30 KOSPI −6.16% · 13:30 US PCE 3.8% · 18:45 Hera live',
-  map:'Where it happened',briefs:'Also on 25 November — 20 more stories',dateLabel:'DATE CHECK',badgeLegend:'Badges:',
+  map:'Where it happened',briefs:'Also on 25 November — 20 more stories',dateLabel:'DATE CHECK',badgeLegend:'Badges:',mapCredit:'Map data: Natural Earth (public domain).',
 }as const;
 
 export const REGION_COUNTS:readonly{region:Region;count:number}[]=[
@@ -74,11 +74,11 @@ export const MAP_POINTS:readonly MapPoint[]=[
   {number:31,region:'Oceania',location:[170.94,-63.09]},{number:32,region:'World',location:[-74.00,40.75]},{number:33,region:'World',location:[6.14,46.20]},
 ];
 
-export const DATE_PARAGRAPH='All 33 stories occurred or were first reported on 25 Nov 2026 UTC. Earlier dates excluded: 23 Nov — leaked Rosstat data (about 490,334 war dead; Mediazona/BBC; Reuters 25 Nov), Zambia treason certificate, Anmer Hall. 24 Nov — Riyadh PIF tower, Huawei verdict, CAS restores Senegal AFCON title, WHO Akwe Ebola evacuation, DRC cobalt halt and Bunia pullout, Brazil fiscal law, Ethiopia polio (21–24 Nov). Map data: Natural Earth (public domain).';
+export const DATE_PARAGRAPH='33 events or first reports, 25 Nov 2026 UTC. Excluded: 23 Nov — leaked Rosstat (c. 490,334 war dead; Mediazona/BBC; Reuters 25 Nov), Zambia treason certificate, Anmer Hall. 24 Nov — Riyadh PIF tower, Huawei verdict, CAS restores Senegal’s AFCON title, WHO Akwe Ebola evac., DRC cobalt halt/Bunia pullout, Brazil fiscal law, Ethiopia polio (21–24).';
 
 export const ALL_DRAWN_STRINGS:readonly string[]=[
   PAGE.runningLeft,PAGE.runningRight,PAGE.date,PAGE.regionSummary,PAGE.utcLabel,PAGE.utcLine,
   ...LEADS.flatMap(s=>[String(s.number),`${s.region} · ${s.place}`,s.headline,s.deck,s.source,s.callout,s.badge]),
-  PAGE.map,...MAP_POINTS.map(p=>String(p.number)),...MAP_REGION_LABELS,PAGE.badgeLegend,...BADGE_LEGEND.flatMap(b=>[b.badge,b.label]),
+  PAGE.map,...MAP_POINTS.map(p=>String(p.number)),...MAP_REGION_LABELS,PAGE.badgeLegend,...BADGE_LEGEND.flatMap(b=>[b.badge,b.label]),PAGE.mapCredit,
   PAGE.briefs,...BRIEFS.flatMap(s=>[String(s.number),`${s.place} · ${s.summary}`,s.source]),PAGE.dateLabel,DATE_PARAGRAPH,
 ];

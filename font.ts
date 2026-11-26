@@ -232,13 +232,24 @@ export function textWidth(font: TrueTypeFont, text: string, size: number, letter
 
 export function drawText(canvas: Canvas, font: TrueTypeFont, text: string, x: number, y: number, size: number, color: Color, letterSpacing = 0): number {
   let cursor = x, previous = '';
+  const bounds = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
   for (const char of text) {
     cursor += pairKern(font, previous, char, size);
     const contours = font.scaledGlyph(char, size).map((contour) => contour.map(([px, py]) => [px + cursor, py + y] as const));
+    if (canvas.onText) {
+      if (!font.hasGlyph(char)) throw new Error(`Missing glyph ${JSON.stringify(char)} in “${text}”`);
+      for (const contour of contours) for (const [px, py] of contour) {
+        bounds.left = Math.min(bounds.left, px);
+        bounds.right = Math.max(bounds.right, px);
+        bounds.top = Math.min(bounds.top, py);
+        bounds.bottom = Math.max(bounds.bottom, py);
+      }
+    }
     canvas.multiPolygon(contours, color);
     cursor += font.advance(char, size) + letterSpacing;
     previous = char;
   }
+  canvas.onText?.(text, bounds);
   return cursor;
 }
 

@@ -1,84 +1,181 @@
-export type Region='Asia'|'Europe'|'Africa'|'Americas'|'Middle East'|'Oceania'|'World';
-export type Badge='OFFICIAL'|'CONFIRMED'|'REPORTED'|'CLAIM';
-export type Scene='rocket'|'market'|'tariffs'|'treaty'|'court'|'tankers'|'refinery'|'rescue'|'port'|'clinic'|'city'|'stocks'|'asteroid';
+export type Region = 'Asia' | 'Europe' | 'Africa' | 'Americas' | 'Middle East' | 'Oceania' | 'World';
+export type Badge = 'OFFICIAL' | 'CONFIRMED' | 'REPORTED' | 'CLAIM';
+export type Location = readonly [longitude: number, latitude: number];
 
-export interface LeadStory{number:number;region:Region;badge:Badge;place:string;headline:string;deck:string;source:string;callout:string;scene:Scene;}
-export interface BriefStory{number:number;region:Region;place:string;summary:string;source:string;}
-export interface MapPoint{number:number;region:Region;location:readonly[longitude:number,latitude:number];}
+interface Story {
+  number: number;
+  region: Region;
+  place: string;
+  source: string;
+}
 
-export const PAGE={
-  runningLeft:'THE WORLD IN ONE DAY',runningRight:'ALL 33 STORIES DATED WEDNESDAY 25 NOV',date:'Wednesday 25 November 2026',
-  regionSummary:'33 stories, all dated 25 Nov 2026 · Asia 7 · Europe 6 · Africa 5 · Americas 5 · Middle East 4 · Oceania 4 · World 2',
-  utcLabel:'THE DAY IN UTC',utcLine:'00:19 Shenzhou-24 launch · 01:38 M5.9 quake · 03:56 Tiangong dock · 06:30 KOSPI −6.16% · 13:30 US PCE 3.8% · 18:45 Hera live',
-  map:'Where it happened',briefs:'Also on 25 November — 20 more stories',dateLabel:'DATE CHECK',badgeLegend:'Badges:',
-}as const;
+interface Card extends Story {
+  location: Location;
+  badge: Badge;
+  headline: readonly [string, string];
+  deck: string;
+}
 
-export const REGION_COUNTS:readonly{region:Region;count:number}[]=[
-  {region:'Asia',count:7},{region:'Europe',count:6},{region:'Africa',count:5},{region:'Americas',count:5},{region:'Middle East',count:4},{region:'Oceania',count:4},{region:'World',count:2},
-];
-export const MAP_REGION_LABELS=['Asia 7','Europe 6','Africa 5','Americas 5','Mid East 4','Oceania 4','World 2'] as const;
-export const BADGE_LEGEND:readonly{badge:Badge;label:string}[]=[
-  {badge:'OFFICIAL',label:'official record'},{badge:'CONFIRMED',label:'multi-wire'},{badge:'REPORTED',label:'monitor or press'},{badge:'CLAIM',label:'unverified'},
-];
+export interface HeroStory extends Card {
+  scene: 'station' | 'market' | 'tariffs';
+  takeaway: string;
+}
 
-export const LEADS:readonly LeadStory[]=[
-  {number:1,region:'Asia',badge:'OFFICIAL',place:'Jiuquan, China',headline:'Shenzhou-24 docks at Tiangong',deck:'Zeeshan Ali becomes first foreigner aboard; crew enters at 06:35 UTC',source:'Reuters · Xinhua · AP',callout:'03:56 UTC',scene:'rocket'},
-  {number:2,region:'Asia',badge:'OFFICIAL',place:'Seoul, South Korea',headline:'KOSPI closes down 6.16%',deck:'Index ends at 4,697.51; Samsung −9.87%, SK hynix −11.05%',source:'Yonhap',callout:'−6.16%',scene:'market'},
-  {number:3,region:'Americas',badge:'OFFICIAL',place:'Washington, US',headline:'US proposes Section 301 tariffs',deck:'Section 301 targets 14 economies; India up to 25%, China 20%',source:'USTR · Reuters · Nikkei',callout:'UP TO 25%',scene:'tariffs'},
-  {number:4,region:'Oceania',badge:'OFFICIAL',place:'Canberra, Australia',headline:'Australia–Solomons pact signed',deck:'No foreign bases; China deal ends Apr 2027',source:'BBC · AP · AAP',callout:'APR 2027',scene:'treaty'},
-  {number:5,region:'Africa',badge:'OFFICIAL',place:'Cape Town, South Africa',headline:'Court voids Farmgate report',deck:'Ramaphosa’s Phala Phala panel ruled unlawful',source:'Reuters · CNBC Africa · IOL',callout:'SET ASIDE',scene:'court'},
-  {number:6,region:'Middle East',badge:'CLAIM',place:'Strait of Hormuz',headline:'Iran claims mines hit tankers',deck:'IRGC claim of two burning tankers unverified',source:'Reuters · Arab News · Anadolu',callout:'HORMUZ',scene:'tankers'},
-  {number:7,region:'Europe',badge:'REPORTED',place:'Samara, Russia',headline:'Drones hit Samara refineries',deck:'Fires 800 km inside Russia; one killed',source:'DW · Kyiv Post · Independent',callout:'800 KM',scene:'refinery'},
-  {number:8,region:'Americas',badge:'CONFIRMED',place:'Cartagena, Colombia',headline:'Cartagena hostages all freed',deck:'About 30 held at Éxito; one gunman killed',source:'UPI · AFP · Euronews',callout:'30 HELD',scene:'rescue'},
-  {number:9,region:'Middle East',badge:'CONFIRMED',place:'Hodeidah, Yemen',headline:'Strikes hit Hodeidah port',deck:'Saada and Amran also struck',source:'Reuters · Arab News · Al Arabiya',callout:'HODEIDAH',scene:'port'},
-  {number:10,region:'Africa',badge:'REPORTED',place:'Beni, DR Congo',headline:'Families seek Ebola dead',deck:'About 650 dead in Beni since May',source:'Reuters',callout:'650 DEAD',scene:'clinic'},
-  {number:11,region:'Europe',badge:'REPORTED',place:'Odesa & Kyiv, Ukraine',headline:'Grid strikes kill three',deck:'Outages hit five regions',source:'Reuters · DW · Ukrinform',callout:'5 REGIONS',scene:'city'},
-  {number:12,region:'Americas',badge:'OFFICIAL',place:'New York, US',headline:'US Oct PCE rises to 3.8%',deck:'Core PCE 3.3%; stocks drop',source:'BEA · Reuters · AP',callout:'PCE 3.8%',scene:'stocks'},
-  {number:13,region:'Europe',badge:'OFFICIAL',place:'Darmstadt, Germany',headline:'Hera reaches Dimorphos',deck:'First post-DART images at 18:45 UTC',source:'ESA · BBC News',callout:'18:45 UTC',scene:'asteroid'},
-];
+export interface MidStory extends Card {
+  scene: 'energy' | 'garments' | 'fire' | 'mine' | 'treaty' | 'rescue' | 'court' | 'tankers' | 'clinic' | 'asteroid';
+  figure: string;
+  caption: string;
+}
 
-export const BRIEFS:readonly BriefStory[]=[
-  {number:14,region:'Asia',place:'Tokyo',summary:'Services PPI +4.2%, 36-yr high',source:'Reuters · BOJ · CNA'},
-  {number:15,region:'Asia',place:'Dhaka',summary:'Garment wage raised 36%',source:'AP · Al Jazeera'},
-  {number:16,region:'Asia',place:'Pyongyang',summary:'Sylvain Astier: 48h to leave',source:'AP · Euronews'},
-  {number:17,region:'Asia',place:'Xiamen',summary:'Airline orders 50 Boeing 737s',source:'Nikkei Asia · Benzinga'},
-  {number:18,region:'Asia',place:'Jakarta',summary:'OECD review about 80% done',source:'ANTARA · CNBC'},
-  {number:19,region:'Europe',place:'Warsaw',summary:'Border no-fly zone set',source:'DW · The Guardian'},
-  {number:20,region:'Europe',place:'Berlin',summary:'Merz warns Russia wants more',source:'DW'},
-  {number:21,region:'Europe',place:'Paris / London',summary:'Eurostar strike hits trains',source:'AP · ABC News'},
-  {number:22,region:'Africa',place:'Khartoum',summary:'Rejects Ethiopia talks offer',source:'SUNA · Sudan Tribune · Reuters'},
-  {number:23,region:'Africa',place:'Dakar',summary:'FA head denies CAS contact',source:'AFP'},
-  {number:24,region:'Africa',place:'Lusaka',summary:'Court hears Mundubile bail bid',source:'Lusaka Times'},
-  {number:25,region:'Middle East',place:'Ras Tanura',summary:'Seven drones intercepted',source:'Reuters · Al Arabiya'},
-  {number:26,region:'Middle East',place:'Gaza City',summary:'Strike kills Mohammad Abuelouf',source:'Reuters · AP · Arab News'},
-  {number:27,region:'Americas',place:'Buenos Aires',summary:'Argentina enters recession',source:'EL PAÍS · Bloomberg'},
-  {number:28,region:'Americas',place:'Middletown, Iowa',summary:'5-ton lead azide blast set',source:'AP · US Army'},
-  {number:29,region:'Oceania',place:'Canberra',summary:'October CPI jumps to 4.9%',source:'ABC · ABS'},
-  {number:30,region:'Oceania',place:'Port Moresby',summary:'Drought aid for 680,000',source:'RNZ · Pacific.scoop'},
-  {number:31,region:'Oceania',place:'Balleny Islands',summary:'M5.9 quake; green alert',source:'USGS · GDACS'},
-  {number:32,region:'World',place:'New York, UN',summary:'16 Days of Activism starts',source:'UN Press · UN Women'},
-  {number:33,region:'World',place:'Geneva',summary:'Health manufacturing forum',source:'WHO · WTO'},
+export interface BriefStory extends Story { summary: string }
+
+export const HEROES: readonly HeroStory[] = [
+  {
+    number: 1, region: 'Asia', place: 'Jiuquan, China', location: [100.29, 40.96],
+    badge: 'OFFICIAL', scene: 'station', headline: ['Shenzhou-24 docks', 'at Tiangong'],
+    deck: 'Pakistan’s Muhammad Zeeshan Ali entered the station with two Chinese crewmates at 06:35 UTC.',
+    takeaway: 'Pakistan can now run crewed experiments in orbit.', source: 'CMSA via Xinhua · Reuters',
+  },
+  {
+    number: 2, region: 'Asia', place: 'Seoul, South Korea', location: [126.93, 37.52],
+    badge: 'OFFICIAL', scene: 'market', headline: ['KOSPI falls 6.16%', 'as chip stocks slide'],
+    deck: 'Seoul’s index shed 308.52 points to close at 4,697.51. Losses spread to Taiwan and Japan.',
+    takeaway: 'The chip sell-off erased Tuesday’s KOSPI rally.', source: 'Yonhap · Anadolu',
+  },
+  {
+    number: 3, region: 'Americas', place: 'Washington, US', location: [-77.04, 38.90],
+    badge: 'OFFICIAL', scene: 'tariffs', headline: ['US proposes tariffs', 'on 14 economies'],
+    deck: 'The Section 301 plan targets excess factory capacity. Some goods would be exempt.',
+    takeaway: 'Import costs would rise if the duties take effect.', source: 'US Trade Representative · Reuters',
+  },
 ];
 
-export const MAP_POINTS:readonly MapPoint[]=[
-  {number:1,region:'Asia',location:[100.30,40.96]},{number:2,region:'Asia',location:[126.98,37.57]},{number:3,region:'Americas',location:[-77.04,38.90]},
-  {number:4,region:'Oceania',location:[149.13,-35.28]},{number:5,region:'Africa',location:[18.42,-33.92]},{number:6,region:'Middle East',location:[56.25,26.57]},
-  {number:7,region:'Europe',location:[50.15,53.20]},{number:8,region:'Americas',location:[-75.48,10.39]},{number:9,region:'Middle East',location:[42.95,14.80]},
-  {number:10,region:'Africa',location:[29.47,0.49]},{number:11,region:'Europe',location:[30.62,48.47]},{number:12,region:'Americas',location:[-74.15,40.75]},
-  {number:13,region:'Europe',location:[8.65,49.87]},{number:14,region:'Asia',location:[139.65,35.68]},{number:15,region:'Asia',location:[90.41,23.81]},
-  {number:16,region:'Asia',location:[125.76,39.04]},{number:17,region:'Asia',location:[118.09,24.48]},{number:18,region:'Asia',location:[106.85,-6.21]},
-  {number:19,region:'Europe',location:[21.01,52.23]},{number:20,region:'Europe',location:[13.40,52.52]},{number:21,region:'Europe',location:[1.10,50.20]},
-  {number:22,region:'Africa',location:[32.56,15.50]},{number:23,region:'Africa',location:[-17.45,14.72]},{number:24,region:'Africa',location:[28.28,-15.42]},
-  {number:25,region:'Middle East',location:[50.16,26.64]},{number:26,region:'Middle East',location:[34.80,31.50]},{number:27,region:'Americas',location:[-58.38,-34.60]},
-  {number:28,region:'Americas',location:[-91.26,40.83]},{number:29,region:'Oceania',location:[149.13,-35.28]},{number:30,region:'Oceania',location:[147.18,-9.44]},
-  {number:31,region:'Oceania',location:[170.94,-63.09]},{number:32,region:'World',location:[-74.00,40.75]},{number:33,region:'World',location:[6.14,46.20]},
+export const SECONDARY: readonly MidStory[] = [
+  {
+    number: 4, region: 'Europe', place: 'London, UK', location: [-0.13, 51.51],
+    badge: 'OFFICIAL', scene: 'energy', figure: '+26%', caption: 'FROM 1 JAN',
+    headline: ['UK energy price', 'cap rises 26%'],
+    deck: '£1,723 to £2,166 a year at typical direct-debit use in Great Britain.', source: 'Ofgem',
+  },
+  {
+    number: 5, region: 'Asia', place: 'Gazipur, Bangladesh', location: [90.36, 23.99],
+    badge: 'REPORTED', scene: 'garments', figure: '+36%', caption: 'WAGE FLOOR',
+    headline: ['Garment workers', 'block Dhaka road'],
+    deck: 'Protesters say the new minimum of 17,000 taka a month is too low.', source: 'The Business Standard',
+  },
+  {
+    number: 6, region: 'Africa', place: 'Giza, Egypt', location: [31.22, 30.10],
+    badge: 'OFFICIAL', scene: 'fire', figure: '21', caption: 'INJURED',
+    headline: ['Tanker fire kills', 'at least 31'],
+    deck: 'A fuel truck crashed in Warraq, near Cairo’s Ring Road.', source: 'Health Ministry via CNN',
+  },
+  {
+    number: 7, region: 'Asia', place: 'Bogor, Indonesia', location: [106.55, -6.66],
+    badge: 'REPORTED', scene: 'mine', figure: '100 m', caption: 'EST. SHAFT DEPTH',
+    headline: ['Nine miners found', 'dead in Bogor'],
+    deck: 'Crews search a flooded gold mine for 17 others feared trapped.', source: 'Associated Press',
+  },
+  {
+    number: 8, region: 'Oceania', place: 'Canberra, Australia', location: [149.13, -35.31],
+    badge: 'OFFICIAL', scene: 'treaty', figure: 'A$740m', caption: 'OVER 10 YEARS',
+    headline: ['Solomons signs', 'Australia treaty'],
+    deck: 'The partners bar foreign bases in the Solomon Islands.', source: 'Australian PM · AP',
+  },
+  {
+    number: 9, region: 'Americas', place: 'Cartagena, Colombia', location: [-75.47, 10.39],
+    badge: 'CONFIRMED', scene: 'rescue', figure: '17 h', caption: 'STANDOFF',
+    headline: ['Police free last', 'Éxito hostages'],
+    deck: 'Shoppers and staff went free after an overnight rescue.', source: 'BBC News · AP',
+  },
+  {
+    number: 10, region: 'Africa', place: 'Cape Town, South Africa', location: [18.42, -33.92],
+    badge: 'OFFICIAL', scene: 'court', figure: '3–0', caption: 'COURT RULING',
+    headline: ['Judges set aside', 'farm cash report'],
+    deck: 'Ramaphosa won his challenge to the Phala Phala panel’s findings.', source: 'Reuters · IOL',
+  },
+  {
+    number: 11, region: 'Middle East', place: 'Strait of Hormuz', location: [56.32, 26.57],
+    badge: 'CLAIM', scene: 'tankers', figure: '2 tankers', caption: 'IRAN’S ACCOUNT',
+    headline: ['Iran says mines', 'hit two tankers'],
+    deck: 'The Revolutionary Guards’ account lacked independent confirmation.', source: 'Reuters · Anadolu',
+  },
+  {
+    number: 12, region: 'Africa', place: 'Beni, DR Congo', location: [29.47, 0.49],
+    badge: 'REPORTED', scene: 'clinic', figure: 'About 650', caption: 'DEAD SINCE MAY',
+    headline: ['Families search', 'for Ebola dead'],
+    deck: 'Relatives told Reuters they could not find their families’ graves.', source: 'Reuters',
+  },
+  {
+    number: 13, region: 'Europe', place: 'Berlin, Germany', location: [13.38, 52.53],
+    badge: 'OFFICIAL', scene: 'asteroid', figure: '151 m', caption: 'MOONLET WIDTH',
+    headline: ['Hera images show', 'DART’s crater'],
+    deck: 'New views of Dimorphos show a crater spanning the moonlet’s face.', source: 'European Space Agency',
+  },
 ];
 
-export const DATE_PARAGRAPH='All 33 stories occurred or were first reported on 25 Nov 2026 UTC. Earlier dates excluded: 23 Nov — leaked Rosstat data (about 490,334 war dead; Mediazona/BBC; Reuters 25 Nov), Zambia treason certificate, Anmer Hall. 24 Nov — Riyadh PIF tower, Huawei verdict, CAS restores Senegal AFCON title, WHO Akwe Ebola evacuation, DRC cobalt halt and Bunia pullout, Brazil fiscal law, Ethiopia polio (21–24 Nov). Map data: Natural Earth (public domain).';
-
-export const ALL_DRAWN_STRINGS:readonly string[]=[
-  PAGE.runningLeft,PAGE.runningRight,PAGE.date,PAGE.regionSummary,PAGE.utcLabel,PAGE.utcLine,
-  ...LEADS.flatMap(s=>[String(s.number),`${s.region} · ${s.place}`,s.headline,s.deck,s.source,s.callout,s.badge]),
-  PAGE.map,...MAP_POINTS.map(p=>String(p.number)),...MAP_REGION_LABELS,PAGE.badgeLegend,...BADGE_LEGEND.flatMap(b=>[b.badge,b.label]),
-  PAGE.briefs,...BRIEFS.flatMap(s=>[String(s.number),`${s.place} · ${s.summary}`,s.source]),PAGE.dateLabel,DATE_PARAGRAPH,
+export const LEADS = [...HEROES, ...SECONDARY];
+export const BRIEFS: readonly BriefStory[] = [
+  { number: 14, region: 'Americas', place: 'Washington', summary: 'Oct. PCE 3.8% on year; core 3.3%', source: 'BEA' },
+  { number: 15, region: 'Europe', place: 'Ukraine', summary: 'Strikes cut power in five regions', source: 'Ukrinform' },
+  { number: 16, region: 'Europe', place: 'Samara', summary: 'Two refineries reported on fire', source: 'DW · Kyiv Post' },
+  { number: 17, region: 'Middle East', place: 'Hodeidah', summary: 'Coalition reports port strikes', source: 'Reuters' },
+  { number: 18, region: 'Middle East', place: 'Ras Tanura', summary: 'Coalition reports four drones down', source: 'Reuters' },
+  { number: 19, region: 'Middle East', place: 'Gaza City', summary: 'Airstrike kills Mohammad Abuelouf', source: 'AP' },
+  { number: 20, region: 'Africa', place: 'Khartoum', summary: 'Rejects Ethiopia’s offer of talks', source: 'Sudan Tribune' },
+  { number: 21, region: 'Africa', place: 'Dakar', summary: 'FA head denies contact with CAS', source: 'AFP' },
+  { number: 22, region: 'Africa', place: 'Lusaka', summary: 'Court defers Mundubile bail ruling', source: 'Lusaka Times' },
+  { number: 23, region: 'Asia', place: 'Pyongyang', summary: 'Envoy Sylvain Astier has 48h to leave', source: 'AP' },
+  { number: 24, region: 'Asia', place: 'Jakarta', summary: 'OECD review about 80% complete', source: 'ANTARA' },
+  { number: 25, region: 'Europe', place: 'Warsaw', summary: 'Poland proposes border no-fly zone', source: 'DW' },
+  { number: 26, region: 'Europe', place: 'Berlin', summary: 'Merz: Russia wants more than Ukraine', source: 'DW' },
+  { number: 27, region: 'Europe', place: 'Paris–London', summary: 'Eurostar strike cancels trains', source: 'Eurostar' },
+  { number: 28, region: 'Americas', place: 'Buenos Aires', summary: 'Boca honours Diego Maradona', source: 'DeporTV' },
+  { number: 29, region: 'Americas', place: 'Middletown, Iowa', summary: 'Army destroys lead azide stock', source: 'AP' },
+  { number: 30, region: 'Oceania', place: 'Australia', summary: 'October CPI rises to 4.9% from 4.3%', source: 'ABS' },
+  { number: 31, region: 'Oceania', place: 'Nadi', summary: 'Ex-cyclone Xavier: 20–25 knot winds', source: 'RSMC Nadi' },
+  { number: 32, region: 'World', place: 'Port Moresby', summary: '16 Days of Activism begins', source: 'UN Women' },
+  { number: 33, region: 'World', place: 'Balleny Islands', summary: 'M5.9 quake, 10 km deep', source: 'USGS' },
 ];
+
+export const EDITION = [...LEADS, ...BRIEFS];
+const regions: readonly Region[] = ['Asia', 'Europe', 'Africa', 'Americas', 'Middle East', 'Oceania', 'World'];
+export const REGION_COUNTS = regions.map(region => ({ region, count: EDITION.filter(s => s.region === region).length }));
+
+export const PAGE = {
+  runningLeft: 'THE WORLD IN ONE DAY', runningRight: `${EDITION.length} STORIES   /   WORLD EDITION`,
+  date: 'Wednesday 25 November 2026',
+  deck: 'Shenzhou-24 carries Pakistan’s first astronaut to Tiangong; Seoul’s KOSPI falls 6.16%; the US proposes new tariffs.',
+  utcLabel: 'THE DAY IN UTC', why: 'WHY IT MATTERS',
+  map: `Where it happened — Stories 1–${LEADS.length}`, mapCredit: 'Coastlines: Natural Earth',
+  briefs: `Also on 25 November — ${BRIEFS.length} more stories`, dateLabel: 'DATE CHECK', badgeLegend: 'Verification',
+} as const;
+
+export const KPIS = [
+  { label: 'KOSPI close', value: '4,697.51', note: 'Down 6.16% in Seoul' },
+  { label: 'UK energy cap', value: '£2,166', note: 'Typical annual bill · Jan 2027' },
+  { label: 'US tariff proposal', value: 'Up to 25%', note: 'On goods from India' },
+  { label: 'Dhaka garment wage', value: '17,000 taka', note: 'Monthly minimum · up 36%' },
+  { label: 'Cairo tanker deaths', value: 'At least 31', note: '21 injured near the Ring Road' },
+  { label: 'Aboard Tiangong', value: '1st Pakistani', note: 'Muhammad Zeeshan Ali' },
+] as const;
+
+export const TIMELINE = [
+  ['00:18', 'Shenzhou launch'], ['01:38', 'M5.9 quake'], ['03:56', 'Tiangong dock'],
+  ['06:30', 'KOSPI close'], ['13:30', 'US inflation'], ['18:45', 'Hera live'],
+] as const;
+
+export const MARKET_CLOSES = [
+  { name: 'KOSPI', loss: 6.16 }, { name: 'Samsung', loss: 9.87 },
+  { name: 'SK hynix', loss: 11.05 }, { name: 'TAIEX', loss: 4.80 }, { name: 'Nikkei 225', loss: 2.78 },
+] as const;
+export const TARIFF_RATES = [
+  { name: 'CHINA', rate: 20 }, { name: 'INDIA', rate: 25 },
+  { name: 'EU', rate: 15 }, { name: 'VIETNAM', rate: 35 },
+] as const;
+
+export const BADGE_LEGEND: readonly { badge: Badge; label: string }[] = [
+  { badge: 'OFFICIAL', label: 'official record' }, { badge: 'CONFIRMED', label: 'multiple sources' },
+  { badge: 'REPORTED', label: 'press account' }, { badge: 'CLAIM', label: 'unverified' },
+];
+
+export const DATE_PARAGRAPH = `All ${EDITION.length} stories occurred or were first reported on 25 Nov 2026 UTC. 23 Nov — leaked Rosstat data and the Bogor mine flood. 24 Nov — the Dhaka wage vote and the CAS ruling restoring Senegal’s title. Wednesday brought the mine recoveries, the workers’ blockade and the Senegal FA’s denial of contact with CAS. Ofgem announced January’s cap; the US tariff rates are proposals.`;

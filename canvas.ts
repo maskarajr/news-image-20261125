@@ -1,5 +1,7 @@
 export type Color = readonly [number, number, number, number?];
 
+export interface TextBounds { left: number; top: number; right: number; bottom: number }
+
 export const COLORS = {
   ink: [15, 32, 47] as Color,
   paper: [244, 239, 226] as Color,
@@ -18,6 +20,8 @@ export class Canvas {
   readonly width: number;
   readonly height: number;
   readonly scale: number;
+  // Optional ink measurements for the text audit, in final (not supersampled) pixels.
+  onText?: (text: string, bounds: TextBounds) => void;
 
   constructor(
     width: number,

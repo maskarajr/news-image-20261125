@@ -1,21 +1,62 @@
 import { Canvas, COLORS, type Color } from './canvas.ts';
 import { HALDEN, HALDEN_BOLD, MERIDIAN_BOLD, drawCentered, drawText } from './font.ts';
-import { MAP_POINTS, MAP_REGION_LABELS, PAGE, REGION_COUNTS, type MapPoint } from './content.ts';
-import { REGION_COLORS } from './stories.ts';
+import { LEADS, PAGE, type Location } from './content.ts';
+import { REGION_COLORS, type Box } from './stories.ts';
 import { WORLD_LAND } from './world-land.ts';
 
-type GeoPoint=readonly[longitude:number,latitude:number];export type PinCenter={number:number;cx:number;cy:number;ax:number;ay:number};
-const OCEAN:Color=[231,228,218],LAND:Color=[200,206,191],LEADER:Color=[91,104,96];
-export function project([lon,lat]:GeoPoint):readonly[number,number]{const lam=lon*Math.PI/180,phi=lat*Math.PI/180,p2=phi*phi,p4=p2*p2,p6=p4*p2;return[lam*(.870700-.131979*p2+p4*(-.013791+p6*(.003971-.001529*p2))),-phi*(1.007226+p2*.015085+p6*(-.044475+p2*(.028874-.005916*p2)))];}
-const PROJECTED=WORLD_LAND.map(ring=>ring.map(point=>project(point)));const vertices=PROJECTED.flat();const BOUNDS={minX:Math.min(...vertices.map(p=>p[0])),maxX:Math.max(...vertices.map(p=>p[0])),minY:Math.min(...vertices.map(p=>p[1])),maxY:Math.max(...vertices.map(p=>p[1]))};
-const OFFSETS:Readonly<Record<number,readonly[number,number]>>={
-  1:[-6,-2],2:[-8,8],3:[-8,8],4:[-10,-7],5:[-5,7],6:[9,-4],7:[9,-8],8:[0,7],9:[8,7],10:[8,6],11:[9,-3],12:[6,-11],13:[-5,-12],
-  14:[8,8],15:[-8,7],16:[-7,-11],17:[9,7],18:[1,10],19:[9,-10],20:[2,-1],21:[-12,-4],22:[-9,5],23:[-7,-5],24:[-7,8],25:[4,9],26:[0,9],
-  27:[0,2],28:[-10,-7],29:[9,-2],30:[7,-6],31:[-6,5],32:[13,2],33:[-8,9],
-};
-function transform([px,py]:readonly[number,number],x:number,y:number,w:number,h:number):readonly[number,number]{const pad=.01,rangeX=BOUNDS.maxX-BOUNDS.minX,rangeY=BOUNDS.maxY-BOUNDS.minY,sx=w*(1-pad*2)/rangeX,sy=Math.min(h*(1-pad*2)/rangeY,sx*1.22),usedW=rangeX*sx,usedH=rangeY*sy,left=x+(w-usedW)/2,top=y+(h-usedH)/2;return[left+(px-BOUNDS.minX)*sx,top+(py-BOUNDS.minY)*sy];}
-function anchor(point:GeoPoint,x:number,y:number,w:number,h:number):readonly[number,number]{const adjusted:GeoPoint=[point[0],Math.max(-54.8,Math.min(72,point[1]))];return transform(project(adjusted),x,y,w,h);}
-export function computePinCenters(x=24,y=671,w=332,h=230):PinCenter[]{return MAP_POINTS.map(p=>{const[a,b]=anchor(p.location,x,y,w,h),o=OFFSETS[p.number]??[0,0];return{number:p.number,ax:a,ay:b,cx:a+o[0],cy:b+o[1]};});}
-function pin(c:Canvas,p:MapPoint,v:PinCenter):void{c.line(v.ax,v.ay,v.cx,v.cy,.9,LEADER);c.circle(v.ax,v.ay,1.1,LEADER);c.circle(v.cx,v.cy,5.4,COLORS.white);c.circle(v.cx,v.cy,4.6,REGION_COLORS[p.region]);drawCentered(c,HALDEN_BOLD,String(p.number),v.cx,v.cy-3.6,7.5,COLORS.white,p.number>9?-.35:0);}
-export function drawLocator(c:Canvas,x:number,y:number,w:number):void{drawText(c,MERIDIAN_BOLD,PAGE.map,x,y,17,COLORS.ink);const mapY=y+24,mapH=230;c.rect(x,mapY,w,mapH,OCEAN);for(const ring of PROJECTED)c.polygon(ring.map(p=>transform(p,x,mapY,w,mapH)),LAND);const centers=computePinCenters(x,mapY,w,mapH);MAP_POINTS.forEach((p,i)=>pin(c,p,centers[i]));const widths=MAP_REGION_LABELS.map(label=>11+drawWidth(label)),total=widths.reduce((a,b)=>a+b,0)+6*(MAP_REGION_LABELS.length-1);let px=x+(w-total)/2;MAP_REGION_LABELS.forEach((label,i)=>{c.circle(px+3.5,y+265,3.5,REGION_COLORS[REGION_COUNTS[i].region]);drawText(c,HALDEN,label,px+9,y+260,8.5,COLORS.grey);px+=widths[i]+6;});}
-function drawWidth(text:string):number{return text.length?text.split('').reduce((sum,char)=>sum+HALDEN.advance(char,8.5),0):0;}
+export const MAP_BOX: Box = { x: 24, y: 754, w: 344, h: 177 };
+export const PIN_RADIUS = 6.5;
+const OCEAN: Color = [225, 235, 228], LAND: Color = [145, 165, 149];
+
+// Natural Earth I projection. Land vertices and datelines use the same transform.
+export function project([longitude, latitude]: Location): readonly [number, number] {
+  const lambda = longitude * Math.PI / 180, phi = latitude * Math.PI / 180;
+  const p2 = phi * phi, p4 = p2 * p2, p6 = p4 * p2;
+  return [lambda * (.870700 - .131979 * p2 + p4 * (-.013791 + p6 * (.003971 - .001529 * p2))),
+    -phi * (1.007226 + p2 * .015085 + p6 * (-.044475 + p2 * (.028874 - .005916 * p2)))];
+}
+
+const rings = WORLD_LAND.map(ring => ring.map(project));
+const vertices = rings.flat();
+const minX = Math.min(...vertices.map(p => p[0])), maxX = Math.max(...vertices.map(p => p[0]));
+const minY = Math.min(...vertices.map(p => p[1])), maxY = Math.max(...vertices.map(p => p[1]));
+
+function viewport({ x, y, w, h }: Box) {
+  const scale = Math.min((w - 8) / (maxX - minX), (h - 8) / (maxY - minY));
+  const left = x + (w - scale * (maxX - minX)) / 2, top = y + (h - scale * (maxY - minY)) / 2;
+  return ([px, py]: readonly [number, number]): [number, number] => [left + (px - minX) * scale, top + (py - minY) * scale];
+}
+
+export function computePinCenters(box = MAP_BOX) {
+  const screen = viewport(box);
+  const pins = LEADS.map(({ number, region, location }) => {
+    const [ax, ay] = screen(project(location));
+    return { number, region, ax, ay, cx: ax, cy: ay };
+  });
+  const diameter = 2 * PIN_RADIUS;
+  for (let i = 0; i < pins.length; i++) for (let j = i + 1; j < pins.length; j++) {
+    const a = pins[i], b = pins[j], dx = b.cx - a.cx, dy = b.cy - a.cy, distance = Math.hypot(dx, dy);
+    if (distance >= diameter) continue;
+    const shift = (diameter + 1 - distance) / 2;
+    const nx = distance ? dx / distance : 1, ny = distance ? dy / distance : 0;
+    a.cx -= nx * shift; a.cy -= ny * shift;
+    b.cx += nx * shift; b.cy += ny * shift;
+    if (Math.hypot(a.cx - a.ax, a.cy - a.ay) > 3 || Math.hypot(b.cx - b.ax, b.cy - b.ay) > 3)
+      throw new Error(`Map too small to separate pins ${a.number} and ${b.number} within 3 px`);
+  }
+  return pins;
+}
+
+export function drawLocator(c: Canvas): void {
+  const { x, y, w, h } = MAP_BOX, screen = viewport(MAP_BOX);
+  drawText(c, MERIDIAN_BOLD, PAGE.map, x, y - 26, 18, COLORS.ink);
+  c.rect(x, y, w, h, COLORS.line);
+  c.rect(x + 1, y + 1, w - 2, h - 2, OCEAN);
+  for (const ring of rings) c.polygon(ring.map(screen), LAND);
+  for (const pin of computePinCenters()) {
+    c.circle(pin.cx, pin.cy, PIN_RADIUS, COLORS.white);
+    c.circle(pin.cx, pin.cy, PIN_RADIUS - 1, REGION_COLORS[pin.region]);
+    drawCentered(c, HALDEN_BOLD, String(pin.number), pin.cx, pin.cy - 5, 8.6, COLORS.white, -.15);
+  }
+  drawText(c, HALDEN, PAGE.mapCredit, x, y + h + 1, 10, COLORS.grey);
+}

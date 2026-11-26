@@ -219,6 +219,16 @@ function flattenContour(points: Contour): FlatContour {
 export const MERIDIAN_BOLD = new TrueTypeFont(new URL('./fonts/Meridian-Bold.ttf', import.meta.url));
 export const HALDEN = new TrueTypeFont(new URL('./fonts/Halden-Regular.ttf', import.meta.url));
 export const HALDEN_BOLD = new TrueTypeFont(new URL('./fonts/Halden-Bold.ttf', import.meta.url));
+export const MIN_TEXT_SIZE = 11.5;
+
+export interface TextRun {
+  font: TrueTypeFont;
+  text: string;
+  x: number;
+  y: number;
+  size: number;
+  letterSpacing: number;
+}
 
 export function pairKern(font: TrueTypeFont, previous: string, current: string, size: number): number {
   return font === MERIDIAN_BOLD && previous.toLowerCase() === 'c' && current.toLowerCase() === 'l' ? size * 0.07 : 0;
@@ -230,7 +240,24 @@ export function textWidth(font: TrueTypeFont, text: string, size: number, letter
   return Math.max(0, width - letterSpacing);
 }
 
-export function drawText(canvas: Canvas, font: TrueTypeFont, text: string, x: number, y: number, size: number, color: Color, letterSpacing = 0): number {
+export function inkBounds({font, text, x, y, size, letterSpacing}: TextRun) {
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity, pen = x, previous = '';
+  for (const ch of text) {
+    pen += pairKern(font, previous, ch, size);
+    for (const contour of font.scaledGlyph(ch, size)) {
+      for (const [px, py] of contour) {
+        left = Math.min(left, pen + px); right = Math.max(right, pen + px);
+        top = Math.min(top, y + py); bottom = Math.max(bottom, y + py);
+      }
+    }
+    pen += font.advance(ch, size) + letterSpacing;
+    previous = ch;
+  }
+  return {left, right, top, bottom};
+}
+
+export function drawText(canvas: Canvas & { onText?: (run: TextRun) => void }, font: TrueTypeFont, text: string, x: number, y: number, size: number, color: Color, letterSpacing = 0): number {
+  canvas.onText?.({ font, text, x, y, size, letterSpacing });
   let cursor = x, previous = '';
   for (const char of text) {
     cursor += pairKern(font, previous, char, size);

@@ -1,6 +1,4 @@
-out/
-out1/
-out2/
+out*/
 preview-300.png
 PROMPT*.md
 node_modules/
